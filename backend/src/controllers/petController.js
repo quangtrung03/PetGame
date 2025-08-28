@@ -39,10 +39,28 @@ const createPet = async (req, res) => {
     });
 
     // Add pet to user's pets array
-    await User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
       req.user.id,
-      { $push: { pets: pet._id } }
+      { $push: { pets: pet._id } },
+      { new: true }
     );
+
+
+    // Unlock achievement 'first_pet' nếu user chưa có
+    const Achievement = require('../models/Achievement');
+    const firstPetAch = await Achievement.findOne({ code: 'first_pet' });
+    if (firstPetAch && !user.achievements.includes(firstPetAch._id)) {
+      user.achievements.push(firstPetAch._id);
+      await user.save();
+    }
+
+    // Unlock achievement 'pet_lover' nếu user có >= 5 pets
+    const petLoverAch = await Achievement.findOne({ code: 'pet_lover' });
+    const updatedUser = await User.findById(req.user.id);
+    if (petLoverAch && updatedUser.pets.length >= 5 && !updatedUser.achievements.includes(petLoverAch._id)) {
+      updatedUser.achievements.push(petLoverAch._id);
+      await updatedUser.save();
+    }
 
     res.status(201).json({
       success: true,
@@ -85,11 +103,43 @@ const feedPet = async (req, res) => {
     // Feed the pet
     await pet.feed();
 
+    // Unlock achievement 'feeder' nếu pet feedCount >= 100
+    if (pet.feedCount >= 100) {
+      const Achievement = require('../models/Achievement');
+      const feederAch = await Achievement.findOne({ code: 'feeder' });
+      const user = await User.findById(req.user.id);
+      if (feederAch && !user.achievements.includes(feederAch._id)) {
+        user.achievements.push(feederAch._id);
+        await user.save();
+      }
+    }
+
+
     // Check if leveled up
     const leveledUp = pet.level > oldLevel;
     let message = '🍖 Pet đã no rồi!';
     if (leveledUp) {
       message += ` 🎉 Level lên ${pet.level}!`;
+      // Unlock achievement 'pet_master' nếu pet đạt level 10
+      if (pet.level >= 10) {
+        const Achievement = require('../models/Achievement');
+        const petMasterAch = await Achievement.findOne({ code: 'pet_master' });
+        const user = await User.findById(req.user.id);
+        if (petMasterAch && !user.achievements.includes(petMasterAch._id)) {
+          user.achievements.push(petMasterAch._id);
+          await user.save();
+        }
+      }
+    }
+
+    // Unlock achievement 'trainer' nếu tổng XP của user >= 1000
+    const userForXP = await User.findById(req.user.id).populate('pets');
+    const totalXP = (userForXP.pets || []).reduce((sum, p) => sum + (p.xp || 0), 0);
+    const Achievement = require('../models/Achievement');
+    const trainerAch = await Achievement.findOne({ code: 'trainer' });
+    if (trainerAch && totalXP >= 1000 && !userForXP.achievements.includes(trainerAch._id)) {
+      userForXP.achievements.push(trainerAch._id);
+      await userForXP.save();
     }
 
     res.json({
@@ -138,11 +188,43 @@ const playWithPet = async (req, res) => {
     // Play with the pet
     await pet.play();
 
+    // Unlock achievement 'player' nếu pet playCount >= 100
+    if (pet.playCount >= 100) {
+      const Achievement = require('../models/Achievement');
+      const playerAch = await Achievement.findOne({ code: 'player' });
+      const user = await User.findById(req.user.id);
+      if (playerAch && !user.achievements.includes(playerAch._id)) {
+        user.achievements.push(playerAch._id);
+        await user.save();
+      }
+    }
+
+
     // Check if leveled up
     const leveledUp = pet.level > oldLevel;
     let message = '🎾 Pet rất vui!';
     if (leveledUp) {
       message += ` 🎉 Level lên ${pet.level}!`;
+      // Unlock achievement 'pet_master' nếu pet đạt level 10
+      if (pet.level >= 10) {
+        const Achievement = require('../models/Achievement');
+        const petMasterAch = await Achievement.findOne({ code: 'pet_master' });
+        const user = await User.findById(req.user.id);
+        if (petMasterAch && !user.achievements.includes(petMasterAch._id)) {
+          user.achievements.push(petMasterAch._id);
+          await user.save();
+        }
+      }
+    }
+
+    // Unlock achievement 'trainer' nếu tổng XP của user >= 1000
+    const userForXP2 = await User.findById(req.user.id).populate('pets');
+    const totalXP2 = (userForXP2.pets || []).reduce((sum, p) => sum + (p.xp || 0), 0);
+    const Achievement2 = require('../models/Achievement');
+    const trainerAch2 = await Achievement2.findOne({ code: 'trainer' });
+    if (trainerAch2 && totalXP2 >= 1000 && !userForXP2.achievements.includes(trainerAch2._id)) {
+      userForXP2.achievements.push(trainerAch2._id);
+      await userForXP2.save();
     }
 
     res.json({

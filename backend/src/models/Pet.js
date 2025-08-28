@@ -48,6 +48,16 @@ const petSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  feedCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  playCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -73,6 +83,7 @@ petSchema.methods.updateStatsOverTime = function() {
 };
 
 // Method to feed pet
+
 petSchema.methods.feed = function() {
   this.updateStatsOverTime();
   this.hunger = Math.min(100, this.hunger + 20);
@@ -80,11 +91,13 @@ petSchema.methods.feed = function() {
   this.xp += 10;
   this.coins += 5;
   this.lastFed = new Date();
+  this.feedCount = (this.feedCount || 0) + 1;
   this.checkLevelUp();
   return this.save();
 };
 
 // Method to play with pet
+
 petSchema.methods.play = function() {
   this.updateStatsOverTime();
   this.happiness = Math.min(100, this.happiness + 20);
@@ -92,6 +105,7 @@ petSchema.methods.play = function() {
   this.xp += 15;
   this.coins += 8;
   this.lastPlayed = new Date();
+  this.playCount = (this.playCount || 0) + 1;
   this.checkLevelUp();
   return this.save();
 };

@@ -49,6 +49,10 @@ const userSchema = new mongoose.Schema({
   pets: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Pet'
+  }],
+  achievements: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Achievement'
   }]
 }, {
   timestamps: true

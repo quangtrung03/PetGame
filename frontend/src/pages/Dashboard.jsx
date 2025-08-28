@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getPets } from '../api/pets';
+import AchievementList from '../components/AchievementList';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -54,10 +55,13 @@ const Dashboard = () => {
           <p className="mt-2 text-lg text-gray-600">
             Hãy chăm sóc những người bạn thú cưng của bạn
           </p>
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Enhanced Stats Cards */}
+        </div>
+
+        {/* Achievement Section */}
+        <AchievementList />
           <div className="card">
             <div className="flex items-center">
               <div className="flex-shrink-0">
