@@ -9,104 +9,141 @@
 - Protected routes
 
 ### 🐾 Quản lý Pet
-- Tạo pet (mèo/chó) với tên tùy chỉnh
+- Tạo pet (5 loại: cat, dog, rabbit, bird, fish) với tên tùy chỉnh
 - Hiển thị danh sách pet của user
 - Xóa pet (có confirm dialog)
 - Theo dõi thời gian tạo pet
 
 ### 🎮 Chăm sóc Pet
-- **Cho ăn**: Hunger +20, Happiness +10
-- **Chơi đùa**: Happiness +20, Hunger -5
+- **Cho ăn**: Hunger +20, Happiness +10, XP +10, Coins +5
+- **Chơi đùa**: Happiness +20, Hunger -5, XP +15, Coins +8
+- **Auto-decline**: Hunger -5/giờ, Happiness -3/giờ
 - Thanh trạng thái trực quan (0-100)
 - Màu sắc theo mức độ (xanh/vàng/đỏ)
 
-### 🎨 Giao diện
+### ⭐ XP & Level System
+- Pet nhận XP khi chăm sóc
+- Level up mỗi 100 XP
+- Bonus coins khi level up
+- Progress bar hiển thị XP
+
+### 💰 Coin System & Economy
+- Nhận coins khi chăm sóc pet
+- Hiển thị coins trên pet card
+- User có starting coins: 100
+- Coin balance tracking
+
+### 🏪 Shop System (MỚI!)
+- **15 shop items** đa dạng:
+  - 🥘 Basic Food (10 coins)
+  - 🥩 Premium Steak (50 coins)
+  - 🐟 Fresh Fish (35 coins)
+  - 🦴 Bone Treat (25 coins)
+  - 🥕 Carrot Snack (15 coins)
+  - � Bird Seeds (20 coins)
+  - 🎾 Tennis Ball (30 coins)
+  - 🪶 Feather Wand (45 coins)
+  - 🐭 Squeaky Mouse (25 coins)
+  - 🪢 Chew Rope (35 coins)
+  - 🪞 Mirror Toy (40 coins)
+  - 🕳️ Tunnel (55 coins)
+  - 🏆 Golden Food Bowl (100 coins)
+  - 🧪 Magic Potion (80 coins)
+  - ⭐ XP Boost (75 coins)
+
+### 🎒 Inventory System (MỚI!)
+- Lưu trữ items đã mua
+- Sử dụng items cho pets
+- Quantity tracking
+- Item effects (hunger, happiness, XP)
+
+### �🎨 Giao diện
 - Responsive design với TailwindCSS
 - Dashboard thống kê
-- Navigation bar thông minh
-- Pet cards với animations
+- Navigation bar với Shop link
+- Pet cards với progress bars (XP, hunger, happiness)
 - Form validation
+- Loading states cho buttons
+- Toast notifications với XP/coin info
 
 ### 🔧 Technical
 - RESTful API hoàn chỉnh
 - MongoDB với Mongoose
 - React với Context API
-- Error handling cơ bản
+- Error handling nâng cao
 - CORS configuration
+- Shop API endpoints
+- Inventory management system
 
 ---
 
 ## 🔥 LỘ TRÌNH PHÁT TRIỂN
 
-### 🎯 PHASE 1: CORE IMPROVEMENTS (1-2 tuần)
+### 🎯 PHASE 1: CORE IMPROVEMENTS ✅ HOÀN THÀNH
 
-#### Priority #1: Pet Status Decline ⏰
+#### ✅ Priority #1: Pet Status Decline ⏰ - DONE
 **Mô tả**: Pet đói và buồn theo thời gian thực
 ```javascript
-// Pet tự động giảm stats mỗi giờ
+// Pet tự động giảm stats mỗi giờ - ĐÃ TRIỂN KHAI
 hunger: -5/hour
 happiness: -3/hour
 ```
 **Impact**: Tạo urgency, làm game thú vị hơn
 
-#### Priority #2: Toast Notifications 🔔
-**Mô tả**: Thông báo khi thực hiện hành động
+#### ✅ Priority #2: Toast Notifications 🔔 - DONE
+**Mô tả**: Thông báo khi thực hiện hành động - ĐÃ TRIỂN KHAI
 - Cho ăn thành công: "🍖 Pet đã no rồi!"
 - Chơi thành công: "🎾 Pet rất vui!"
 - Lỗi: "❌ Có lỗi xảy ra!"
 
-#### Priority #3: XP & Level System ⭐
-**Mô tả**: Pet nhận XP và lên level
+#### ✅ Priority #3: XP & Level System ⭐ - DONE
+**Mô tả**: Pet nhận XP và lên level - ĐÃ TRIỂN KHAI
 ```javascript
-// Mỗi lần chăm sóc
+// Mỗi lần chăm sóc - ĐÃ CÓ
 feedPet: +10 XP
 playWithPet: +15 XP
-levelUp: maxStats += 10
+levelUp: bonus coins
 ```
 
-#### Priority #4: Loading States ⏳
-- Skeleton loading cho pet cards
-- Button loading khi thực hiện action
-- Page loading indicators
+#### ✅ Priority #4: Loading States ⏳ - DONE
+- Button loading khi thực hiện action - ĐÃ TRIỂN KHAI
+- Page loading indicators - ĐÃ TRIỂN KHAI
 
-#### Priority #5: More Pet Types 🐰
-- Thêm: Rabbit 🐰, Bird 🐦, Fish 🐠
-- Mỗi loại có đặc điểm riêng
-- Icon và animation khác nhau
+#### ✅ Priority #5: More Pet Types 🐰 - DONE
+- Thêm: Rabbit 🐰, Bird 🐦, Fish 🐠 - ĐÃ TRIỂN KHAI
+- Icon và display khác nhau - ĐÃ TRIỂN KHAI
 
 ---
 
-### 🏪 PHASE 2: ECONOMY SYSTEM (2-3 tuần)
+### 🏪 PHASE 2: ECONOMY SYSTEM ✅ HOÀN THÀNH
 
-#### Coin System 💰
+#### ✅ Coin System 💰 - DONE
 ```javascript
-// User nhận coin khi chăm sóc
+// User nhận coin khi chăm sóc - ĐÃ TRIỂN KHAI
 feedPet: +5 coins
 playWithPet: +8 coins
-dailyLogin: +50 coins
+levelUp: +level * 10 coins
+startingCoins: 100
 ```
 
-#### Shop System 🛒
-**Food Shop**:
-- 🥩 Premium Food (50 coins): +30 hunger, +5 XP
-- 🐟 Fish Treat (30 coins): +25 hunger (chỉ cho mèo)
-- 🦴 Bone Snack (25 coins): +20 hunger (chỉ cho chó)
+#### ✅ Shop System 🛒 - DONE
+**15 Items đã tạo**:
+- � Basic/Premium Foods với effects khác nhau
+- 🎾 Toys cho từng loại pet
+- 🏆 Special items với hiệu quả cao
+- Pet-specific items (fish for cats, bones for dogs, etc.)
 
-**Toy Shop**:
-- 🎾 Ball (40 coins): +25 happiness
-- 🪀 Feather Toy (35 coins): +20 happiness, +5 XP
-- 🧸 Teddy Bear (60 coins): +35 happiness
-
-#### Inventory System 🎒
-- Lưu trữ items đã mua
-- Sử dụng items từ inventory
-- Hiển thị số lượng items
+#### ✅ Inventory System 🎒 - DONE
+- Lưu trữ items đã mua - ĐÃ TRIỂN KHAI
+- Sử dụng items từ inventory - ĐÃ TRIỂN KHAI
+- Hiển thị số lượng items - ĐÃ TRIỂN KHAI
+- Use items for specific pets - ĐÃ TRIỂN KHAI
 
 ---
 
-### 🎮 PHASE 3: ADVANCED GAMEPLAY (3-4 tuần)
+### 🎮 PHASE 3: ADVANCED GAMEPLAY (🚧 TIẾP THEO - 3-4 tuần)
 
-#### Mini-games for XP 🎯
+#### 🎯 Mini-games for XP (CHƯA LÀM)
 **Memory Game**: Nhớ thứ tự pet xuất hiện
 - Thành công: +25 XP
 - Fail: +5 XP
@@ -120,7 +157,7 @@ dailyLogin: +50 coins
 - Đúng: +15 XP
 - Sai: +3 XP
 
-#### Pet Abilities 🌟
+#### 🌟 Pet Abilities (CHƯA LÀM)
 **Mỗi loại pet có skill đặc biệt**:
 - 🐱 Cat: "Stealth" - Ẩn khỏi status decline 2h
 - 🐶 Dog: "Loyal" - Bonus XP +50% trong 1h  
@@ -128,7 +165,7 @@ dailyLogin: +50 coins
 - 🐦 Bird: "Singer" - Tự động tăng happiness
 - 🐠 Fish: "Zen" - Không bao giờ stress
 
-#### Achievement System 🏆
+#### 🏆 Achievement System (CHƯA LÀM)
 **Pet Care Achievements**:
 - 🥉 "First Steps": Tạo pet đầu tiên
 - 🥈 "Pet Lover": Có 5 pets cùng lúc
@@ -139,21 +176,26 @@ dailyLogin: +50 coins
 - 🎾 "Player": Chơi với pet 100 lần
 - ⭐ "Trainer": Đạt total 1000 XP
 
+#### 📅 Daily Rewards (CHƯA LÀM)
+- Daily login bonus: +50 coins
+- Streak multiplier: x2, x3, x5 after 3, 7, 14 days
+- Weekly quests với coin rewards
+
 ---
 
-### 👥 PHASE 4: SOCIAL FEATURES (4-5 tuần)
+### 👥 PHASE 4: SOCIAL FEATURES (🔮 TƯƠNG LAI - 4-5 tuần)
 
-#### Friend System 👫
+#### Friend System 👫 (CHƯA LÀM)
 - Gửi/nhận lời mời kết bạn
 - Xem pets của bạn bè
 - Chat đơn giản
 
-#### Pet Visits 🏠
+#### Pet Visits 🏠 (CHƯA LÀM)
 - Thăm pets của bạn bè
 - Cho ăn pets của bạn → bạn nhận rewards
 - Pet breeding (phối giống)
 
-#### Leaderboards 🏅
+#### Leaderboards 🏅 (CHƯA LÀM)
 - Top pet levels
 - Most active players
 - Happiest pets

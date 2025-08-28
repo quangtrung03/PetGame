@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Pets from './pages/Pets';
+import Shop from './pages/Shop';
 
 function App() {
   return (
@@ -43,6 +44,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Pets />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/shop"
+                element={
+                  <ProtectedRoute>
+                    <Shop />
                   </ProtectedRoute>
                 }
               />

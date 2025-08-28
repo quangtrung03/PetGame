@@ -6,6 +6,7 @@ const connectDB = require('./config/db');
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const petRoutes = require('./routes/petRoutes');
+const shopRoutes = require('./routes/shopRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -27,6 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/pets', petRoutes);
+app.use('/api/shop', shopRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

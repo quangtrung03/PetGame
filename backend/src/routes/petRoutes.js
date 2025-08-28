@@ -6,12 +6,12 @@ const {
   playWithPet,
   deletePet
 } = require('../controllers/petController');
-const { protect } = require('../middleware/auth');
+const auth = require('../middleware/auth');
 
 const router = express.Router();
 
 // All pet routes are protected
-router.use(protect);
+router.use(auth);
 
 router.route('/')
   .get(getUserPets)
