@@ -1,4 +1,5 @@
 import React from 'react';
+import PetGameLogoRemove from '../assets/PetGameLogo-removebg-preview.png';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,42 +8,44 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-              🐾 Pet Game
-            </h1>
-            <p className="text-xl md:text-2xl text-primary-100 mb-8 max-w-3xl mx-auto">
-              Chào mừng đến với thế giới thú cưng ảo! 
-              Nuôi dưỡng, chăm sóc và khám phá cùng những người bạn đáng yêu.
-            </p>
-            
-            {!isAuthenticated ? (
-              <div className="space-x-4">
-                <Link
-                  to="/register"
-                  className="inline-block bg-white text-primary-600 font-semibold py-3 px-8 rounded-lg hover:bg-gray-50 transition-colors duration-200"
-                >
-                  Bắt đầu ngay
-                </Link>
-                <Link
-                  to="/login"
-                  className="inline-block border-2 border-white text-white font-semibold py-3 px-8 rounded-lg hover:bg-white hover:text-primary-600 transition-colors duration-200"
-                >
-                  Đăng nhập
-                </Link>
-              </div>
-            ) : (
+
+      {/* Hero Section - PetGameLogo style */}
+      <div className="bg-[#d6e7d0] flex items-center justify-center py-20">
+        <div className="text-center">
+          <img
+            src={PetGameLogoRemove}
+            alt="Pet Game Logo"
+            className="mx-auto mb-6" style={{ maxWidth: '260px', width: '100%' }}
+          />
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-4">
+            Pet Game
+          </h1>
+          <p className="text-xl md:text-2xl text-gray-700 mb-8 max-w-3xl mx-auto">
+            Chào mừng đến với thế giới thú cưng ảo! Nuôi dưỡng, chăm sóc và khám phá cùng những người bạn đáng yêu.
+          </p>
+          {!isAuthenticated ? (
+            <div className="space-x-4">
               <Link
-                to="/dashboard"
-                className="inline-block bg-white text-primary-600 font-semibold py-3 px-8 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                to="/register"
+                className="inline-block bg-primary-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-primary-700 transition-colors duration-200"
               >
-                Vào chơi ngay
+                Bắt đầu ngay
               </Link>
-            )}
-          </div>
+              <Link
+                to="/login"
+                className="inline-block border-2 border-primary-600 text-primary-600 font-semibold py-3 px-8 rounded-lg hover:bg-primary-600 hover:text-white transition-colors duration-200"
+              >
+                Đăng nhập
+              </Link>
+            </div>
+          ) : (
+            <Link
+              to="/dashboard"
+              className="inline-block bg-primary-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-primary-700 transition-colors duration-200"
+            >
+              Vào chơi ngay
+            </Link>
+          )}
         </div>
       </div>
 

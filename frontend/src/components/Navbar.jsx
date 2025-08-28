@@ -1,4 +1,5 @@
 import React from 'react';
+import PetGameLogo from '../assets/PetGamelogo2-removebg-preview.png';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,9 +16,15 @@ const Navbar = () => {
     <nav className="bg-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
+
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0">
-              <h1 className="text-2xl font-bold text-primary-600">🐾 Pet Game</h1>
+              <img
+                src={PetGameLogo}
+                alt="Pet Game Logo"
+                className="h-12 w-auto mx-auto"
+                style={{ display: 'block' }}
+              />
             </Link>
           </div>
 

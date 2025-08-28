@@ -82,6 +82,32 @@ const loginUser = async (req, res) => {
       });
     }
 
+    // Daily rewards logic
+    let dailyReward = 0;
+    let streak = user.dailyLoginStreak || 0;
+    let lastLogin = user.lastLogin ? new Date(user.lastLogin) : null;
+    const today = new Date();
+    const isNewDay = !lastLogin || today.toDateString() !== lastLogin.toDateString();
+
+    if (isNewDay) {
+      // Check streak
+      if (lastLogin && (today - lastLogin) / (1000 * 60 * 60 * 24) === 1) {
+        streak += 1;
+      } else {
+        streak = 1;
+      }
+      // Multiplier: x1, x2, x3, x5
+      let multiplier = 1;
+      if (streak >= 14) multiplier = 5;
+      else if (streak >= 7) multiplier = 3;
+      else if (streak >= 3) multiplier = 2;
+      dailyReward = 50 * multiplier;
+      user.coins += dailyReward;
+      user.dailyLoginStreak = streak;
+      user.lastLogin = today;
+      await user.save();
+    }
+
     // Generate token
     const token = generateToken(user._id);
 
@@ -93,9 +119,13 @@ const loginUser = async (req, res) => {
           id: user._id,
           username: user.username,
           email: user.email,
-          pets: user.pets
+          pets: user.pets,
+          coins: user.coins,
+          dailyLoginStreak: user.dailyLoginStreak
         },
-        token
+        token,
+        dailyReward: isNewDay ? dailyReward : 0,
+        streak: user.dailyLoginStreak
       }
     });
 

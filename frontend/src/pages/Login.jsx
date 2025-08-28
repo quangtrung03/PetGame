@@ -3,10 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
+
 const Login = () => {
+  // Lấy email và password đã lưu từ localStorage nếu có
+  const savedEmail = localStorage.getItem('savedEmail') || '';
+  const savedPassword = localStorage.getItem('savedPassword') || '';
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: savedEmail,
+    password: savedPassword,
   });
   const [error, setError] = useState('');
 
@@ -19,15 +23,29 @@ const Login = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    // Lưu lại email và password khi người dùng nhập
+    if (e.target.name === 'email') {
+      localStorage.setItem('savedEmail', e.target.value);
+    }
+    if (e.target.name === 'password') {
+      localStorage.setItem('savedPassword', e.target.value);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
+    // Lưu lại email và password khi đăng nhập
+    localStorage.setItem('savedEmail', formData.email);
+    localStorage.setItem('savedPassword', formData.password);
+
     try {
-      await login(formData);
+      const response = await login(formData);
       addToast('🎉 Đăng nhập thành công!', 'success');
+      if (response.data.dailyReward && response.data.dailyReward > 0) {
+        addToast(`💰 Nhận thưởng đăng nhập: +${response.data.dailyReward} coins! (Streak: ${response.data.streak} ngày)`, 'success');
+      }
       navigate('/dashboard');
     } catch (error) {
       const errorMessage = error.message || 'Đăng nhập thất bại';
