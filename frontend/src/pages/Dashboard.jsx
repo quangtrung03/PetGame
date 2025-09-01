@@ -124,7 +124,7 @@ const Dashboard = () => {
         {/* Quick Actions */}
         <div className="mt-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Hành động nhanh</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Link
               to="/pets"
               className="card hover:shadow-lg transition-shadow duration-200 block"
@@ -135,6 +135,19 @@ const Dashboard = () => {
                   <p className="text-gray-600">Xem và chăm sóc các pet của bạn</p>
                 </div>
                 <span className="text-2xl">🐱</span>
+              </div>
+            </Link>
+
+            <Link
+              to="/minigames"
+              className="card hover:shadow-lg transition-shadow duration-200 block"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Mini-games</h3>
+                  <p className="text-gray-600">Chơi game nhận XP cho pet</p>
+                </div>
+                <span className="text-2xl">🎮</span>
               </div>
             </Link>
 

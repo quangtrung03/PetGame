@@ -48,11 +48,11 @@ const petSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  feedCount: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
+    abilities: {
+      type: [String],
+      default: [],
+      description: 'Special skills for each pet type'
+    },
   playCount: {
     type: Number,
     default: 0,

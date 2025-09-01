@@ -15,6 +15,9 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Pets from './pages/Pets';
 import Shop from './pages/Shop';
+import MiniGames from './pages/MiniGames';
+import DailyMissions from './pages/DailyMissions';
+import Friends from './pages/Friends';
 
 function App() {
   return (
@@ -29,7 +32,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              
+
               {/* Protected Routes */}
               <Route
                 path="/dashboard"
@@ -55,7 +58,30 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              
+              <Route
+                path="/daily-missions"
+                element={
+                  <ProtectedRoute>
+                    <DailyMissions />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/friends"
+                element={
+                  <ProtectedRoute>
+                    <Friends />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/minigames"
+                element={
+                  <ProtectedRoute>
+                    <MiniGames />
+                  </ProtectedRoute>
+                }
+              />
               {/* Redirect unknown routes */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

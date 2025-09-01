@@ -30,10 +30,11 @@ export const feedPet = async (petId) => {
   }
 };
 
-// Play with pet
-export const playWithPet = async (petId) => {
+
+// Sử dụng ability của pet
+export const usePetAbility = async (petId, ability) => {
   try {
-    const response = await api.patch(`/pets/${petId}/play`);
+    const response = await api.post(`/pets/${petId}/use-ability`, { ability });
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Network error' };

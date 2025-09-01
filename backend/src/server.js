@@ -31,6 +31,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/pets', petRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/achievements', achievementRoutes);
+app.use('/api/daily-missions', require('./routes/dailyMissionRoutes'));
+app.use('/api/friends', require('./routes/friendRoutes'));
 
 // Health check route
 app.get('/api/health', (req, res) => {

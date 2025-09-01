@@ -4,7 +4,8 @@ const {
   createPet,
   feedPet,
   playWithPet,
-  deletePet
+  deletePet,
+  usePetAbility
 } = require('../controllers/petController');
 const auth = require('../middleware/auth');
 
@@ -25,5 +26,8 @@ router.route('/:id/play')
 
 router.route('/:id')
   .delete(deletePet);
+
+// Use pet ability
+router.route('/:id/use-ability').post(usePetAbility);
 
 module.exports = router;

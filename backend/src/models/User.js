@@ -53,6 +53,14 @@ const userSchema = new mongoose.Schema({
   achievements: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Achievement'
+  }],
+  friends: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  friendRequests: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   }]
 }, {
   timestamps: true

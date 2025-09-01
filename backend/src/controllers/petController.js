@@ -32,11 +32,22 @@ const createPet = async (req, res) => {
     const { name, type } = req.body;
 
     // Create pet
-    const pet = await Pet.create({
-      name,
-      type,
-      owner: req.user.id
-    });
+      const abilitiesByType = {
+        cat: ['Heal', 'Lucky'],
+        dog: ['Guard', 'Fetch'],
+        rabbit: ['Speed Up', 'Double Feed'],
+        bird: ['Sing', 'Scout'],
+        fish: ['Splash', 'Treasure']
+      };
+      const abilities = abilitiesByType[type] || [];
+
+      // Create pet
+      const pet = await Pet.create({
+        name,
+        type,
+        abilities,
+        owner: req.user.id
+      });
 
     // Add pet to user's pets array
     const user = await User.findByIdAndUpdate(
@@ -61,6 +72,67 @@ const createPet = async (req, res) => {
       updatedUser.achievements.push(petLoverAch._id);
       await updatedUser.save();
     }
+
+  // Use pet ability
+  const usePetAbility = async (req, res) => {
+    try {
+      const petId = req.params.id;
+      const { ability } = req.body;
+      const pet = await Pet.findOne({ _id: petId, owner: req.user.id });
+      if (!pet) return res.status(404).json({ success: false, message: 'Pet not found' });
+      if (!pet.abilities.includes(ability)) return res.status(400).json({ success: false, message: 'Ability not found for this pet' });
+
+      // Ability logic (stub)
+      let result = '';
+      switch (ability) {
+        case 'Heal':
+          pet.happiness = Math.min(100, pet.happiness + 20);
+          result = 'Pet happiness restored!';
+          break;
+        case 'Lucky':
+          pet.coins += 10;
+          result = 'Bonus coins received!';
+          break;
+        case 'Guard':
+          // Example: reduce hunger decay for 1 hour (not implemented)
+          result = 'Hunger decay reduced!';
+          break;
+        case 'Fetch':
+          pet.coins += 5;
+          result = 'Pet found some coins!';
+          break;
+        case 'Speed Up':
+          pet.xp += 15;
+          result = 'XP boosted!';
+          break;
+        case 'Double Feed':
+          pet.hunger = Math.min(100, pet.hunger + 30);
+          result = 'Double feed effect!';
+          break;
+        case 'Sing':
+          pet.happiness = Math.min(100, pet.happiness + 10);
+          result = 'All pets feel happier!';
+          break;
+        case 'Scout':
+          result = 'Pet scouted and found something!';
+          break;
+        case 'Splash':
+          pet.hunger = Math.min(100, pet.hunger + 20);
+          result = 'Pet hunger restored!';
+          break;
+        case 'Treasure':
+          pet.coins += 20;
+          result = 'Rare treasure found!';
+          break;
+        default:
+          result = 'Ability used.';
+      }
+      await pet.save();
+      res.json({ success: true, message: result, pet });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+  };
 
     res.status(201).json({
       success: true,

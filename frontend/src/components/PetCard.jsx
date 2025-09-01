@@ -118,6 +118,34 @@ const PetCard = ({ pet, onPetUpdate, onPetDelete }) => {
               Lv.{pet.level || 1}
             </span>
           </h3>
+          {/* Hiển thị abilities */}
+          {pet.abilities && pet.abilities.length > 0 && (
+            <div className="mt-2">
+              <span className="text-sm font-semibold text-gray-700">Kỹ năng đặc biệt:</span>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {pet.abilities.map((ability) => (
+                  <button
+                    key={ability}
+                    className="px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 text-xs font-medium shadow-sm"
+                    disabled={isLoading}
+                    onClick={async () => {
+                      if (isLoading) return;
+                      setIsLoading(true);
+                      try {
+                        const { message, pet: updatedPet } = await require('../api/pets').usePetAbility(pet._id, ability);
+                        onPetUpdate(updatedPet);
+                        addToast(`✨ ${ability}: ${message}`, 'success');
+                      } catch (error) {
+                        addToast(`❌ Không thể sử dụng kỹ năng: ${error.message || 'Lỗi'}`, 'error');
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }}
+                  >{ability}</button>
+                ))}
+              </div>
+            </div>
+          )}
           <p className="text-sm text-gray-500">
             {getPetTypeName(pet.type)} • {pet.coins || 0} 💰
           </p>
