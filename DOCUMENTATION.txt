@@ -1,0 +1,862 @@
+================================================================================
+                    PET GAME - TÀI LIỆU CHI TIẾT CHỨC NĂNG HỆ THỐNG
+================================================================================
+
+📅 Ngày cập nhật: 2 tháng 9, 2025
+🎯 Phiên bản: 1.0.0 
+🏗️ Kiến trúc: MERN Stack (MongoDB, Express.js, React, Node.js)
+
+================================================================================
+1. TỔNG QUAN HỆ THỐNG
+================================================================================
+
+Pet Game là một ứng dụng web cho phép người dùng nuôi và chăm sóc thú cưng ảo. 
+Hệ thống bao gồm các module chính:
+
+🔐 Authentication & User Management
+🐾 Pet Management System  
+🛒 Shop & Inventory System
+🎮 Mini Games & Activities
+📋 Daily Missions System
+👥 Friends & Social Features
+🏆 Achievement System
+💰 Economic System
+
+================================================================================
+2. KIẾN TRÚC HỆ THỐNG
+================================================================================
+
+2.1 BACKEND (Node.js + Express.js)
+----------------------------------
+📁 Structure:
+backend/
+├── src/
+│   ├── server.js              # Main server file
+│   ├── config/db.js           # MongoDB connection
+│   ├── models/                # Mongoose schemas
+│   │   ├── User.js           # User data model  
+│   │   ├── Pet.js            # Pet data model
+│   │   ├── Item.js           # Shop items model
+│   │   ├── Inventory.js      # User inventory model
+│   │   ├── DailyMission.js   # Daily missions model
+│   │   └── Achievement.js    # Achievements model
+│   ├── controllers/          # Business logic
+│   │   ├── authController.js 
+│   │   ├── petController.js
+│   │   ├── shopController.js
+│   │   ├── gameController.js
+│   │   ├── dailyMissionController.js
+│   │   ├── friendController.js
+│   │   └── achievementController.js
+│   ├── routes/               # API endpoints
+│   ├── middleware/           # Authentication & validation
+│   └── services/             # Helper services
+│       ├── economicService.js    # Economic balance
+│       ├── abilityService.js     # Pet abilities
+│       ├── cacheService.js       # Performance optimization
+│       └── missionValidationService.js
+└── scripts/
+    └── smoke_tests.ps1       # Comprehensive API testing
+
+2.2 FRONTEND (React 18 + Vite)
+-------------------------------
+📁 Structure:
+frontend/
+├── src/
+│   ├── App.jsx               # Main app component
+│   ├── main.jsx              # Entry point
+│   ├── components/           # Reusable components
+│   │   ├── Navbar.jsx       
+│   │   ├── PetCard.jsx      # Pet display & interactions
+│   │   ├── ItemInventory.jsx # Inventory management
+│   │   ├── MemoryGame.jsx   # Mini game component
+│   │   └── Toast.jsx        # Notification system
+│   ├── pages/               # Route pages
+│   │   ├── Login.jsx
+│   │   ├── Register.jsx
+│   │   ├── Dashboard.jsx
+│   │   ├── Pets.jsx
+│   │   ├── Shop.jsx
+│   │   ├── MiniGames.jsx
+│   │   ├── DailyMissions.jsx
+│   │   └── Friends.jsx
+│   ├── context/             # State management
+│   │   ├── AuthContext.jsx  # User authentication
+│   │   ├── EconomicContext.jsx # Economic data
+│   │   └── ToastContext.jsx    # Notifications
+│   ├── api/                 # HTTP client layer
+│   └── utils/               # Helper utilities
+
+================================================================================
+3. CƠ SỞ DỮ LIỆU (MongoDB)
+================================================================================
+
+3.1 COLLECTION: users
+----------------------
+Lưu trữ thông tin người dùng và tiến độ game:
+
+{
+  _id: ObjectId,
+  username: String (3-30 chars, unique),
+  email: String (unique, lowercase),
+  password: String (hashed with bcrypt),
+  
+  // Game Progress
+  coins: Number (default: 100),
+  level: Number (default: 1),
+  xp: Number (default: 0),
+  dailyLoginStreak: Number (default: 0),
+  lastLogin: Date,
+  
+  // References
+  pets: [ObjectId] (ref: Pet),
+  achievements: [ObjectId] (ref: Achievement),
+  friends: [ObjectId] (ref: User),
+  friendRequests: [ObjectId] (ref: User),
+  
+  // Economic Tracking
+  actionCooldowns: {
+    feed: Date,
+    play: Date,
+    ability: Date,
+    dailyLogin: Date,
+    minigame: Date
+  },
+  purchaseHistory: {
+    food: Number (default: 0),
+    toys: Number (default: 0),
+    total: Number (default: 0)
+  },
+  dailyStats: {
+    coinsEarned: Number (default: 0),
+    coinsSpent: Number (default: 0),
+    lastReset: Date
+  },
+  
+  // Daily Missions Progress
+  dailyMissions: [{
+    missionCode: String,
+    currentProgress: Number (default: 0),
+    completed: Boolean (default: false),
+    claimed: Boolean (default: false),
+    date: Date
+  }],
+  
+  timestamps: { createdAt, updatedAt }
+}
+
+3.2 COLLECTION: pets
+--------------------
+Lưu trữ thông tin thú cưng:
+
+{
+  _id: ObjectId,
+  name: String (max 50 chars),
+  type: String (enum: ['cat', 'dog', 'rabbit', 'bird', 'fish']),
+  
+  // Status
+  hunger: Number (0-100, default: 50),
+  happiness: Number (0-100, default: 50),
+  level: Number (default: 1),
+  xp: Number (default: 0),
+  
+  // Activity Tracking
+  lastFed: Date,
+  lastPlayed: Date,
+  playCount: Number (default: 0),
+  feedCount: Number (default: 0),
+  
+  // Special Features
+  abilities: [String] (pet-specific skills),
+  
+  // Ownership
+  owner: ObjectId (ref: User),
+  
+  timestamps: { createdAt, updatedAt }
+}
+
+3.3 COLLECTION: items
+---------------------
+Cửa hàng và vật phẩm:
+
+{
+  _id: ObjectId,
+  name: String,
+  type: String (enum: ['food', 'toy', 'accessory']),
+  category: String (enum: ['basic', 'premium', 'special']),
+  price: Number (min: 1),
+  
+  // Effects
+  effects: {
+    hunger: Number (default: 0),
+    happiness: Number (default: 0), 
+    xp: Number (default: 0)
+  },
+  
+  // Compatibility
+  petTypes: [String] (compatible pet types or 'all'),
+  
+  // Display
+  icon: String,
+  description: String,
+  isAvailable: Boolean (default: true),
+  
+  timestamps: { createdAt, updatedAt }
+}
+
+3.4 COLLECTION: dailymissions
+-----------------------------
+Nhiệm vụ hàng ngày:
+
+{
+  _id: ObjectId,
+  code: String (unique identifier),
+  description: String,
+  type: String (enum: ['feed', 'play', 'login', 'purchase', 'ability', 'minigame']),
+  targetProgress: Number (default: 1),
+  
+  // Rewards
+  reward: {
+    coins: Number (default: 0),
+    xp: Number (default: 0),
+    item: String (optional),
+    achievement: String (optional)
+  },
+  
+  active: Boolean (default: true),
+  expiresAt: Date (24h from creation),
+  
+  timestamps: { createdAt, updatedAt }
+}
+
+================================================================================
+4. HỆ THỐNG XÁC THỰC (AUTHENTICATION)
+================================================================================
+
+4.1 REGISTRATION FLOW
+----------------------
+🔸 Endpoint: POST /api/auth/register
+🔸 Input: { username, email, password }
+🔸 Validation:
+  - Username: 3-20 chars, alphanumeric + underscore/hyphen only
+  - Email: Valid email format, max 100 chars
+  - Password: 6-128 chars, must contain uppercase, lowercase, number
+🔸 Process:
+  1. Check username/email uniqueness
+  2. Hash password with bcrypt (salt rounds: 10)
+  3. Create user with default values (100 coins, level 1)
+  4. Generate JWT token (7 days expiry)
+🔸 Response: { success, message, data: { user, token } }
+
+4.2 LOGIN FLOW
+---------------
+🔸 Endpoint: POST /api/auth/login
+🔸 Input: { email, password }
+🔸 Process:
+  1. Find user by email
+  2. Compare password with bcrypt
+  3. Calculate daily login bonus:
+     - Base: 50 coins
+     - Streak multiplier: 1.2x - 2.4x (max 7 days)
+     - Reset if not consecutive day
+  4. Generate JWT token
+🔸 Response: { success, message, data: { user, token, dailyReward, streak } }
+
+4.3 JWT TOKEN SYSTEM
+--------------------
+🔸 Secret: Stored in .env (JWT_SECRET)
+🔸 Expiry: 7 days (configurable)
+🔸 Payload: { id: userId }
+🔸 Usage: Bearer token in Authorization header
+🔸 Middleware: auth.js validates token for protected routes
+
+================================================================================
+5. HỆ THỐNG QUẢN LÝ PET
+================================================================================
+
+5.1 PET CREATION
+----------------
+🔸 Endpoint: POST /api/pets
+🔸 Input: { name, type }
+🔸 Available Types: cat, dog, rabbit, bird, fish
+🔸 Default Stats: hunger=50, happiness=50, level=1, xp=0
+🔸 Abilities Assignment:
+  - Cat: ['Heal', 'Lucky']
+  - Dog: ['Guard', 'Fetch'] 
+  - Rabbit: ['Speed Up', 'Double Feed']
+  - Bird: ['Sing', 'Scout']
+  - Fish: ['Splash', 'Treasure']
+
+5.2 PET INTERACTIONS
+--------------------
+
+FEEDING SYSTEM:
+🔸 Endpoint: PATCH /api/pets/:id/feed
+🔸 Cooldown: 5 minutes
+🔸 Effects:
+  - Hunger: +20 (max 100)
+  - Happiness: +10 (max 100)
+  - XP: +10
+  - Coins (to user): +5 (base) × level multiplier
+🔸 Economic Balance: Prevents spam with cooldown
+🔸 Mission Tracking: Updates 'feed' missions automatically
+
+PLAYING SYSTEM:
+🔸 Endpoint: PATCH /api/pets/:id/play
+🔸 Cooldown: 10 minutes
+🔸 Effects:
+  - Happiness: +20 (max 100)
+  - Hunger: -5 (prevents exploiting)
+  - XP: +15
+  - Coins (to user): +8 (base) × level multiplier
+🔸 Mission Tracking: Updates 'play' missions
+
+ABILITY SYSTEM:
+🔸 Endpoint: POST /api/pets/:id/use-ability
+🔸 Input: { ability }
+🔸 Cooldown: 15 minutes
+🔸 Effects (varies by ability):
+  - Heal: happiness +20
+  - Lucky: bonus coins +10
+  - Guard: reduced hunger decay
+  - Fetch: bonus coins +5
+  - Speed Up: bonus XP +15
+  - Double Feed: hunger +30
+  - Sing: happiness boost to all pets
+  - Scout: exploration bonus
+  - Splash: hunger +20
+  - Treasure: bonus coins +20
+🔸 Coins Reward: +10 (base) × level multiplier
+
+5.3 LEVEL SYSTEM
+----------------
+🔸 XP Required: level × 100 (100, 200, 300, ...)
+🔸 Level Up Benefits:
+  - Increased coin rewards from activities
+  - Access to new abilities (planned)
+  - Status symbol
+🔸 Auto-level up when XP threshold reached
+🔸 XP sources: feeding (+10), playing (+15), abilities (varies)
+
+5.4 STATUS DECAY SYSTEM
+-----------------------
+🔸 Hunger Decay: -5 per hour since last fed
+🔸 Happiness Decay: -3 per hour since last played
+🔸 Auto-calculated when pet accessed
+🔸 Status Levels:
+  - Great (70-100): Green, "Tuyệt vời!"
+  - Good (40-69): Yellow, "Bình thường"
+  - Poor (0-39): Red, "Cần chăm sóc!"
+
+================================================================================
+6. HỆ THỐNG SHOP & INVENTORY
+================================================================================
+
+6.1 SHOP ITEMS
+---------------
+🔸 Endpoint: GET /api/shop/items
+🔸 Categories:
+  - Basic: Lower cost, moderate effects
+  - Premium: Higher cost, better effects  
+  - Special: Expensive, powerful effects
+🔸 Types:
+  - Food: Restores hunger, some give happiness
+  - Toy: Increases happiness, some give XP
+  - Accessory: Cosmetic or special effects
+🔸 Pet Compatibility: Items can be for specific pet types or all
+
+6.2 PURCHASE SYSTEM
+-------------------
+🔸 Endpoint: POST /api/shop/buy
+🔸 Input: { itemId, quantity }
+🔸 Validation Process:
+  1. Check item availability
+  2. Calculate dynamic pricing (inflation if spam buying)
+  3. Validate user has enough coins
+  4. Apply purchase limits (if any)
+🔸 Economic Features:
+  - Purchase history tracking
+  - Dynamic pricing to prevent abuse
+  - Daily spending limits
+🔸 Mission Integration: Updates purchase-related missions
+
+6.3 INVENTORY MANAGEMENT
+------------------------
+🔸 Endpoint: GET /api/shop/inventory
+🔸 Storage: Inventory collection (user + item + quantity)
+🔸 Stacking: Same items stack with quantity counter
+🔸 Usage: POST /api/shop/inventory/use
+🔸 Usage Process:
+  1. Check item ownership
+  2. Verify pet compatibility (if pet-specific)
+  3. Apply item effects to pet
+  4. Reduce quantity (remove if 0)
+  5. Update pet stats and save
+
+================================================================================
+7. HỆ THỐNG MINI GAMES
+================================================================================
+
+7.1 MEMORY GAME
+---------------
+🔸 Endpoint: POST /api/games/memory-result
+🔸 Input: { score, timeCompleted, difficulty }
+🔸 Difficulties: easy, medium, hard
+🔸 Cooldown: 5 minutes
+🔸 Reward Calculation:
+  - Base: 15 coins
+  - Difficulty multiplier: easy(1x), medium(1.5x), hard(2x)
+  - Score bonus: 50+(1.2x), 70+(1.5x), 90+(2x)
+  - Speed bonus: <30s(1.5x), <60s(1.2x)
+🔸 Win Condition: Score ≥ 50
+🔸 Mission Integration: Updates minigame missions
+
+7.2 DAILY BONUS
+---------------
+🔸 Endpoint: POST /api/games/daily-bonus
+🔸 Cooldown: 24 hours
+🔸 Reward Calculation:
+  - Base: 50 coins (from INCOME_CONFIG)
+  - Streak bonus: 1.2x to 2.4x (max 7 days)
+  - Streak tracking: Resets if missed day
+🔸 Automatic on login, can claim manually
+
+7.3 ECONOMIC STATS
+------------------
+🔸 Endpoint: GET /api/games/economic-stats
+🔸 Returns:
+  - Current coins, level, XP
+  - Daily stats (earned/spent)
+  - Cooldown timers for all activities
+  - Economic balance indicators
+
+================================================================================
+8. HỆ THỐNG DAILY MISSIONS
+================================================================================
+
+8.1 MISSION TYPES
+-----------------
+🔸 Feed Missions: "Cho pet ăn X lần"
+🔸 Play Missions: "Chơi với pet X lần"
+🔸 Login Missions: "Đăng nhập hàng ngày"
+🔸 Purchase Missions: "Mua X vật phẩm"
+🔸 Ability Missions: "Sử dụng kỹ năng X lần"
+🔸 Minigame Missions: "Thắng X game"
+
+8.2 MISSION FLOW
+----------------
+🔸 Get Missions: GET /api/daily-missions
+🔸 Progress Tracking: Automatic via MissionValidationService
+🔸 Completion Logic:
+  1. Action performed (feed, play, etc.)
+  2. Service checks matching missions
+  3. Updates progress for user's dailyMissions array
+  4. Marks completed when target reached
+  5. Auto-applies coins/XP on completion
+🔸 Claim Rewards: POST /api/daily-missions/claim
+🔸 Manual Completion: POST /api/daily-missions/complete
+
+8.3 REWARD SYSTEM
+-----------------
+🔸 Types: coins, XP, items, achievements
+🔸 Auto-grant: Coins and XP added automatically on completion
+🔸 Claimed flag: Prevents double-claiming
+🔸 Daily reset: Missions reset at midnight
+
+================================================================================
+9. HỆ THỐNG BẠN BÈ (FRIENDS)
+================================================================================
+
+9.1 USER SEARCH
+---------------
+🔸 Endpoint: GET /api/friends/search?q=username
+🔸 Search: Case-insensitive username matching
+🔸 Returns: username and email only (privacy)
+
+9.2 FRIEND REQUEST FLOW
+-----------------------
+🔸 Send Request: POST /api/friends/send { userId }
+🔸 Process:
+  1. Check if user exists
+  2. Prevent duplicate requests
+  3. Add to target user's friendRequests array
+🔸 Accept Request: POST /api/friends/accept { userId }
+🔸 Process:
+  1. Remove from friendRequests
+  2. Add to both users' friends arrays
+🔸 Decline Request: POST /api/friends/decline { userId }
+
+9.3 FRIENDS LIST
+----------------
+🔸 Get Friends: GET /api/friends/list
+🔸 Get Requests: GET /api/friends/requests
+🔸 Populated Data: Returns username and email of friends
+🔸 Future Features: Visit friends' pets, send gifts
+
+================================================================================
+10. HỆ THỐNG THÀNH TÍCH (ACHIEVEMENTS)
+================================================================================
+
+10.1 ACHIEVEMENT TYPES
+----------------------
+🔸 First Pet: Create your first pet
+🔸 Pet Lover: Own multiple pets
+🔸 Caretaker: Feed pets many times
+🔸 Player: Play with pets many times
+🔸 Rich: Accumulate lots of coins
+🔸 Social: Make friends
+🔸 Dedicated: Login streak achievements
+
+10.2 UNLOCK SYSTEM
+------------------
+🔸 Get All: GET /api/achievements
+🔸 Get User's: GET /api/achievements/user
+🔸 Unlock: POST /api/achievements/unlock { achievementId }
+🔸 Auto-unlock: AchievementService checks conditions
+🔸 Rewards: Coins, XP, special items, titles
+
+================================================================================
+11. HỆ THỐNG KINH TẾ (ECONOMIC SYSTEM)
+================================================================================
+
+11.1 INCOME SOURCES
+-------------------
+🔸 Pet Activities:
+  - Feed: 5 coins (5 min cooldown)
+  - Play: 8 coins (10 min cooldown)  
+  - Ability: 10 coins (15 min cooldown)
+🔸 Daily Activities:
+  - Login: 50 coins (24h cooldown, streak bonus)
+  - Mini Game: 15 coins (5 min cooldown, performance bonus)
+🔸 Achievements: 100 coins (one-time)
+🔸 Level Multiplier: +10% per pet level
+
+11.2 EXPENSE SOURCES
+--------------------
+🔸 Shop Items:
+  - Basic: 10-30 coins
+  - Premium: 50-80 coins
+  - Special: 100-200 coins
+🔸 Future Features:
+  - Pet upgrades
+  - Cosmetics
+  - Special abilities
+
+11.3 BALANCE MECHANISMS
+-----------------------
+🔸 Cooldowns: Prevent infinite farming
+🔸 Dynamic Pricing: Increase costs for repeated purchases
+🔸 Daily Limits: Cap on daily earnings/spending
+🔸 Inflation Control: Monitor coin supply/demand
+🔸 Purchase History: Track spending patterns
+
+================================================================================
+12. HỆ THỐNG HIỆU SUẤT (PERFORMANCE)
+================================================================================
+
+12.1 CACHING SYSTEM
+-------------------
+🔸 Node-cache: In-memory caching for frequent data
+🔸 Cache Keys:
+  - USER_PROFILE(userId): User data
+  - USER_PETS(userId): Pet lists
+  - SHOP_ITEMS: All shop items
+🔸 TTL (Time To Live):
+  - User profiles: 5 minutes
+  - Pet lists: 2 minutes
+  - Shop items: 30 minutes
+🔸 Invalidation: On data updates
+
+12.2 QUERY OPTIMIZATION
+-----------------------
+🔸 Lean Queries: Use .lean() for read-only operations
+🔸 Field Selection: Only fetch required fields
+🔸 Aggregation Pipelines: Complex queries optimized
+🔸 Batch Operations: Multiple updates in single query
+🔸 Indexes: Optimized database indexes
+
+12.3 PERFORMANCE MONITORING
+---------------------------
+🔸 Response Time Tracking: Monitor endpoint performance
+🔸 Memory Usage: Track heap usage
+🔸 Cache Hit Ratio: Monitor cache effectiveness
+🔸 Health Check: GET /api/health
+🔸 Performance Stats: GET /api/performance
+
+================================================================================
+13. API ENDPOINTS SUMMARY
+================================================================================
+
+13.1 AUTHENTICATION
+--------------------
+POST   /api/auth/register        # Register new user
+POST   /api/auth/login           # User login
+GET    /api/auth/profile         # Get user profile (protected)
+
+13.2 PET MANAGEMENT
+-------------------
+GET    /api/pets                 # Get user's pets (protected)
+POST   /api/pets                 # Create new pet (protected)
+PATCH  /api/pets/:id/feed        # Feed pet (protected)
+PATCH  /api/pets/:id/play        # Play with pet (protected)
+POST   /api/pets/:id/use-ability # Use pet ability (protected)
+DELETE /api/pets/:id             # Delete pet (protected)
+
+13.3 SHOP & INVENTORY
+---------------------
+GET    /api/shop/items           # Get shop items
+POST   /api/shop/buy             # Buy item (protected)
+GET    /api/shop/inventory       # Get user inventory (protected)
+POST   /api/shop/inventory/use   # Use inventory item (protected)
+
+13.4 GAMES & ACTIVITIES
+-----------------------
+POST   /api/games/memory-result  # Submit memory game (protected)
+POST   /api/games/daily-bonus    # Claim daily bonus (protected)
+GET    /api/games/economic-stats # Get economic stats (protected)
+
+13.5 DAILY MISSIONS
+-------------------
+GET    /api/daily-missions       # Get daily missions (protected)
+POST   /api/daily-missions/complete # Complete mission (protected)
+POST   /api/daily-missions/claim    # Claim mission reward (protected)
+
+13.6 FRIENDS & SOCIAL
+---------------------
+GET    /api/friends/search       # Search users (protected)
+POST   /api/friends/send         # Send friend request (protected)
+POST   /api/friends/accept       # Accept friend request (protected)
+POST   /api/friends/decline      # Decline friend request (protected)
+GET    /api/friends/list         # Get friends list (protected)
+GET    /api/friends/requests     # Get friend requests (protected)
+
+13.7 ACHIEVEMENTS
+-----------------
+GET    /api/achievements         # Get all achievements
+GET    /api/achievements/user    # Get user achievements (protected)
+POST   /api/achievements/unlock  # Unlock achievement (protected)
+
+13.8 SYSTEM
+-----------
+GET    /api/health               # Health check
+GET    /api/performance          # Performance stats
+
+================================================================================
+14. FRONTEND FEATURES
+================================================================================
+
+14.1 ROUTING SYSTEM
+-------------------
+🔸 React Router: Client-side routing
+🔸 Lazy Loading: Code splitting for performance
+🔸 Protected Routes: Authentication required
+🔸 Error Boundaries: Graceful error handling
+
+Routes:
+/ (Home) - Landing page
+/login - User login
+/register - User registration  
+/dashboard - Main dashboard (protected)
+/pets - Pet management (protected)
+/shop - Item shop (protected)
+/daily-missions - Daily missions (protected)
+/friends - Friends system (protected)
+/minigames - Mini games (protected)
+
+14.2 STATE MANAGEMENT
+---------------------
+🔸 React Context API: Global state management
+🔸 AuthContext: User authentication state
+🔸 EconomicContext: Economic data (coins, stats)
+🔸 ToastContext: Notification system
+🔸 Local State: Component-specific state with useState/useEffect
+
+14.3 UI COMPONENTS
+------------------
+🔸 PetCard: Pet display with status bars and action buttons
+🔸 ItemInventory: Inventory management interface
+🔸 MemoryGame: Interactive memory game
+🔸 Toast Notifications: User feedback system
+🔸 Navbar: Navigation with user info
+🔸 Loading States: Spinners and skeletons
+🔸 Error Handling: Error boundaries and fallbacks
+
+14.4 STYLING SYSTEM
+-------------------
+🔸 TailwindCSS: Utility-first CSS framework
+🔸 Responsive Design: Mobile-first approach
+🔸 Color Scheme: Green/blue theme for pet game
+🔸 Animations: Smooth transitions and hover effects
+🔸 Icons: Unicode emojis for pet-related UI
+
+================================================================================
+15. SECURITY FEATURES
+================================================================================
+
+15.1 AUTHENTICATION SECURITY
+-----------------------------
+🔸 Password Hashing: bcrypt with salt rounds
+🔸 JWT Tokens: Secure token-based authentication
+🔸 Input Validation: Comprehensive server-side validation
+🔸 XSS Prevention: Input sanitization
+🔸 Rate Limiting: API request throttling
+
+15.2 DATA VALIDATION
+--------------------
+🔸 Server-side Validation: All inputs validated on backend
+🔸 Mongoose Schemas: Database-level validation
+🔸 Client-side Validation: User experience enhancement
+🔸 CORS Configuration: Controlled cross-origin access
+🔸 Environment Variables: Sensitive data in .env
+
+15.3 API SECURITY
+-----------------
+🔸 Helmet.js: Security headers
+🔸 Express Rate Limit: Request throttling
+🔸 CORS: Cross-origin resource sharing control
+🔸 JWT Verification: Token validation middleware
+🔸 Error Handling: No sensitive data exposure
+
+================================================================================
+16. TESTING & QUALITY ASSURANCE
+================================================================================
+
+16.1 SMOKE TESTING
+------------------
+🔸 Comprehensive Test Script: backend/scripts/smoke_tests.ps1
+🔸 Coverage: All API endpoints tested
+🔸 Test Scenarios:
+  - User registration and authentication
+  - Pet creation and interactions
+  - Shop purchases and inventory usage
+  - Mini games and economic activities
+  - Daily missions completion
+  - Friends system workflow
+  - Achievement unlocking
+  - Cleanup and data integrity
+
+16.2 TEST FEATURES
+------------------
+🔸 Automated Testing: PowerShell script for backend
+🔸 Performance Tracking: Response time monitoring
+🔸 Error Handling: Comprehensive error catching
+🔸 Test Reports: Pass/fail statistics
+🔸 Data Cleanup: Automatic test data removal
+🔸 Real Workflow Simulation: End-to-end user flows
+
+================================================================================
+17. DEPLOYMENT & ENVIRONMENT
+================================================================================
+
+17.1 ENVIRONMENT CONFIGURATION
+------------------------------
+🔸 Development: Local MongoDB + Node.js + React dev server
+🔸 Production Ready: Configured for cloud deployment
+🔸 Environment Variables:
+  - MONGODB_URI: Database connection string
+  - JWT_SECRET: Token signing secret
+  - JWT_EXPIRE: Token expiration time
+  - PORT: Server port (default: 5000)
+  - NODE_ENV: Environment mode
+  - FRONTEND_URL: CORS configuration
+
+17.2 SCRIPTS & COMMANDS
+-----------------------
+Backend:
+npm start - Production server
+npm run dev - Development server (nodemon)
+
+Frontend:  
+npm run dev - Development server (Vite)
+npm run build - Production build
+npm run preview - Preview production build
+
+================================================================================
+18. FUTURE ENHANCEMENTS
+================================================================================
+
+18.1 PLANNED FEATURES
+---------------------
+🔸 Pet Evolution: Pets evolve after reaching certain levels
+🔸 Breeding System: Combine pets to create new types
+🔸 PvP Battles: Pet vs pet combat system
+🔸 Guilds: Group features for players
+🔸 Seasonal Events: Limited-time content
+🔸 Mobile App: React Native version
+🔸 Real-time Features: WebSocket integration
+🔸 Advanced Analytics: Player behavior tracking
+
+18.2 TECHNICAL IMPROVEMENTS
+---------------------------
+🔸 Redis Caching: External cache for better performance
+🔸 Database Sharding: Horizontal scaling
+🔸 Microservices: Split into smaller services
+🔸 GraphQL: More efficient API queries
+🔸 Unit Testing: Comprehensive test coverage
+🔸 CI/CD Pipeline: Automated deployment
+🔸 Monitoring: Advanced logging and metrics
+🔸 Load Balancing: Multiple server instances
+
+================================================================================
+19. TROUBLESHOOTING GUIDE
+================================================================================
+
+19.1 COMMON BACKEND ISSUES
+---------------------------
+❌ Server won't start:
+✅ Check MongoDB connection in .env
+✅ Verify Node.js version compatibility
+✅ Run npm install to update dependencies
+
+❌ Authentication errors:
+✅ Check JWT_SECRET in .env
+✅ Verify token expiration settings
+✅ Clear browser localStorage if needed
+
+❌ Database connection issues:
+✅ Verify MONGODB_URI is correct
+✅ Check network connectivity
+✅ Ensure MongoDB Atlas whitelist includes your IP
+
+19.2 COMMON FRONTEND ISSUES
+---------------------------
+❌ Frontend won't load:
+✅ Check if backend is running on port 5000
+✅ Verify CORS configuration
+✅ Clear browser cache and cookies
+
+❌ API requests failing:
+✅ Check network tab for error details
+✅ Verify API endpoints are correct
+✅ Ensure authentication token is valid
+
+❌ State management issues:
+✅ Check React DevTools
+✅ Verify context providers are wrapping components
+✅ Clear localStorage if authentication is stuck
+
+================================================================================
+20. CONCLUSION
+================================================================================
+
+Pet Game là một hệ thống web application hoàn chỉnh với:
+
+✅ Kiến trúc MERN Stack hiện đại
+✅ Hệ thống authentication bảo mật với JWT
+✅ Quản lý pet với tính năng tương tác phong phú
+✅ Hệ thống kinh tế cân bằng với cooldown và dynamic pricing
+✅ Mini games và daily missions để tăng engagement
+✅ Social features với friends system
+✅ Performance optimization với caching và query optimization
+✅ Comprehensive testing với automated smoke tests
+✅ Responsive UI với TailwindCSS
+✅ Error handling và user experience tối ưu
+
+Hệ thống được thiết kế để có thể mở rộng và phát triển thêm nhiều tính năng
+trong tương lai, với codebase sạch sẽ và kiến trúc module hóa tốt.
+
+================================================================================
+📧 Liên hệ: Có thể được cập nhật qua repository GitHub
+📈 Phiên bản: 1.0.0 - 2 tháng 9, 2025
+🔄 Cập nhật: Tài liệu sẽ được cập nhật theo phiên bản mới
+================================================================================

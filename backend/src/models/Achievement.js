@@ -6,6 +6,11 @@ const achievementSchema = new mongoose.Schema({
   description: { type: String, required: true },
   icon: { type: String }, // emoji or url
   type: { type: String, enum: ['user', 'pet', 'activity'], default: 'user' },
+  reward: {
+    coins: { type: Number, default: 0 },
+    xp: { type: Number, default: 0 },
+    item: { type: String }
+  }
 });
 
 module.exports = mongoose.model('Achievement', achievementSchema);

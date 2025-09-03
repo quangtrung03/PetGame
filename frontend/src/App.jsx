@@ -1,97 +1,120 @@
-import React from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { EconomicProvider } from './context/EconomicContext';
 import { ToastProvider } from './context/ToastContext';
 
 // Components
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import ToastContainer from './components/ToastContainer';
+import ErrorBoundary from './components/ErrorBoundary';
 
-// Pages
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Pets from './pages/Pets';
-import Shop from './pages/Shop';
-import MiniGames from './pages/MiniGames';
-import DailyMissions from './pages/DailyMissions';
-import Friends from './pages/Friends';
+// Lazy loaded components
+import { 
+  Home,
+  Login, 
+  Register,
+  Dashboard,
+  Pets,
+  Shop,
+  MiniGames,
+  DailyMissions,
+  Friends,
+  preloadCriticalComponents
+} from './components/LazyComponents';
+
+// Loading component
+const LoadingSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+);
 
 function App() {
-  return (
-    <AuthProvider>
-      <ToastProvider>
-        <Router>
-          <div className="min-h-screen bg-gray-50">
-            <Navbar />
-            
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+  // Preload critical components after app starts
+  useEffect(() => {
+    preloadCriticalComponents();
+  }, []);
 
-              {/* Protected Routes */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/pets"
-                element={
-                  <ProtectedRoute>
-                    <Pets />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/shop"
-                element={
-                  <ProtectedRoute>
-                    <Shop />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/daily-missions"
-                element={
-                  <ProtectedRoute>
-                    <DailyMissions />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/friends"
-                element={
-                  <ProtectedRoute>
-                    <Friends />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/minigames"
-                element={
-                  <ProtectedRoute>
-                    <MiniGames />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Redirect unknown routes */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            
-            {/* Toast Container */}
-            <ToastContainer />
-          </div>
-        </Router>
-      </ToastProvider>
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <EconomicProvider>
+          <ToastProvider>
+            <Router>
+              <div className="min-h-screen bg-gray-50">
+                <Navbar />
+                <Suspense fallback={<LoadingSpinner />}>
+              
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Home />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+
+                {/* Protected Routes */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/pets"
+                  element={
+                    <ProtectedRoute>
+                      <Pets />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/shop"
+                  element={
+                    <ProtectedRoute>
+                      <Shop />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/daily-missions"
+                  element={
+                    <ProtectedRoute>
+                      <DailyMissions />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/friends"
+                  element={
+                    <ProtectedRoute>
+                      <Friends />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/minigames"
+                  element={
+                    <ProtectedRoute>
+                      <MiniGames />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Redirect unknown routes */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+              </Suspense>
+              
+              {/* Toast Container */}
+              <ToastContainer />
+            </div>
+          </Router>
+        </ToastProvider>
+      </EconomicProvider>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

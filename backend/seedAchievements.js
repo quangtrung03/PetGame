@@ -18,6 +18,7 @@ const achievements = [
     description: 'Tạo pet đầu tiên',
     icon: '🥉',
     type: 'user',
+    reward: { coins: 100, xp: 50 }
   },
   {
     code: 'pet_lover',
@@ -25,6 +26,7 @@ const achievements = [
     description: 'Có 5 pets cùng lúc',
     icon: '🥈',
     type: 'user',
+    reward: { coins: 500, xp: 200 }
   },
   {
     code: 'pet_master',
@@ -32,6 +34,7 @@ const achievements = [
     description: 'Level 10 cho 1 pet',
     icon: '🥇',
     type: 'pet',
+    reward: { coins: 1000, xp: 500 }
   },
   {
     code: 'feeder',
@@ -39,6 +42,7 @@ const achievements = [
     description: 'Cho ăn 100 lần',
     icon: '🍖',
     type: 'activity',
+    reward: { coins: 200, xp: 100 }
   },
   {
     code: 'player',
@@ -46,6 +50,7 @@ const achievements = [
     description: 'Chơi với pet 100 lần',
     icon: '🎾',
     type: 'activity',
+    reward: { coins: 200, xp: 100 }
   },
   {
     code: 'trainer',
@@ -53,6 +58,7 @@ const achievements = [
     description: 'Đạt tổng 1000 XP',
     icon: '⭐',
     type: 'activity',
+    reward: { coins: 300, xp: 150 }
   },
 ];
 

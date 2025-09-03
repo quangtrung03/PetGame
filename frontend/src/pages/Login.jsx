@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { validators, validateForm, createRateLimiter } from '../utils/validation';
+
+// Rate limiter for login attempts (5 attempts per 15 minutes)
+const loginRateLimiter = createRateLimiter(5, 15 * 60 * 1000);
 
 
 const Login = () => {
@@ -12,45 +16,86 @@ const Login = () => {
     email: savedEmail,
     password: savedPassword,
   });
+  const [errors, setErrors] = useState({});
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { login, isLoading } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-    // Lưu lại email và password khi người dùng nhập
-    if (e.target.name === 'email') {
-      localStorage.setItem('savedEmail', e.target.value);
+    const { name, value } = e.target;
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+    
+    // Clear field-specific errors when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
     }
-    if (e.target.name === 'password') {
-      localStorage.setItem('savedPassword', e.target.value);
+    
+    // Clear general error
+    if (error) {
+      setError('');
+    }
+    
+    // Lưu lại email và password khi người dùng nhập
+    if (name === 'email') {
+      localStorage.setItem('savedEmail', value);
+    }
+    if (name === 'password') {
+      localStorage.setItem('savedPassword', value);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Rate limiting check
+    if (!loginRateLimiter()) {
+      addToast('⚠️ Too many login attempts. Please try again later.', 'error');
+      return;
+    }
+    
+    // Client-side validation
+    const validation = validateForm(formData, {
+      email: (value) => validators.email(value),
+      password: (value) => validators.password(value, true) // isLogin = true
+    });
+    
+    if (!validation.isValid) {
+      setErrors(validation.errors);
+      return;
+    }
+    
+    setErrors({});
     setError('');
+    setIsSubmitting(true);
 
     // Lưu lại email và password khi đăng nhập
-    localStorage.setItem('savedEmail', formData.email);
+    localStorage.setItem('savedEmail', validation.sanitizedData.email);
     localStorage.setItem('savedPassword', formData.password);
 
     try {
-      const response = await login(formData);
+      const response = await login(validation.sanitizedData);
       addToast('🎉 Đăng nhập thành công!', 'success');
-      if (response.data.dailyReward && response.data.dailyReward > 0) {
-        addToast(`💰 Nhận thưởng đăng nhập: +${response.data.dailyReward} coins! (Streak: ${response.data.streak} ngày)`, 'success');
+      // Backend trả về { success, message, data: { user, token, dailyReward, streak } }
+      if (response.data.data.dailyReward && response.data.data.dailyReward > 0) {
+        addToast(`💰 Nhận thưởng đăng nhập: +${response.data.data.dailyReward} coins! (Streak: ${response.data.data.streak} ngày)`, 'success');
       }
       navigate('/dashboard');
     } catch (error) {
       const errorMessage = error.message || 'Đăng nhập thất bại';
       setError(errorMessage);
       addToast(`❌ ${errorMessage}`, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -90,11 +135,18 @@ const Login = () => {
                 type="email"
                 autoComplete="email"
                 required
-                className="input-field mt-1"
+                className={`input-field mt-1 ${errors.email ? 'border-red-500 focus:border-red-500' : ''}`}
                 placeholder="Nhập email của bạn"
                 value={formData.email}
                 onChange={handleChange}
               />
+              {errors.email && (
+                <div className="mt-1 text-sm text-red-600">
+                  {errors.email.map((error, index) => (
+                    <div key={index}>{error}</div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
@@ -107,21 +159,28 @@ const Login = () => {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="input-field mt-1"
+                className={`input-field mt-1 ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
                 placeholder="Nhập mật khẩu"
                 value={formData.password}
                 onChange={handleChange}
               />
+              {errors.password && (
+                <div className="mt-1 text-sm text-red-600">
+                  {errors.password.map((error, index) => (
+                    <div key={index}>{error}</div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           <div>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isSubmitting}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+              {isLoading || isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </div>
         </form>

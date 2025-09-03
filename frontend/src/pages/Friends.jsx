@@ -17,14 +17,16 @@ const Friends = () => {
   const loadFriends = async () => {
     try {
       const res = await getFriends();
-      setFriends(res.friends || []);
+      // Backend trả về { success, message, data }
+      setFriends(res.data?.data?.friends || res.data?.friends || res.friends || []);
     } catch (err) {}
   };
 
   const loadRequests = async () => {
     try {
       const res = await getFriendRequests();
-      setRequests(res.requests || []);
+      // Backend trả về { success, message, data }
+      setRequests(res.data?.data?.requests || res.data?.requests || res.requests || []);
     } catch (err) {}
   };
 
@@ -32,7 +34,8 @@ const Friends = () => {
     if (!search.trim()) return;
     try {
       const res = await searchUsers(search);
-      setResults(res.users || []);
+      // Backend trả về { success, message, data }
+      setResults(res.data?.data?.users || res.data?.users || res.users || []);
     } catch (err) {
       addToast('Không tìm thấy user', 'error');
     }

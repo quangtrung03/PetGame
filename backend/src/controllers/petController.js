@@ -1,371 +1,400 @@
 const Pet = require('../models/Pet');
 const User = require('../models/User');
+const Achievement = require('../models/Achievement');
+const AbilityService = require('../services/abilityService');
+const AchievementService = require('../services/achievementService');
+const EconomicService = require('../services/economicService');
+const MissionValidationService = require('../services/missionValidationService');
+const { CacheService, QueryOptimizer, PerformanceMonitor, CACHE_KEYS, CACHE_TTL } = require('../services/cacheService');
 
-// Get all pets for authenticated user
-const getUserPets = async (req, res) => {
-  try {
-    const pets = await Pet.find({ owner: req.user.id });
-    
-    // Update all pets' stats over time before returning
-    for (let pet of pets) {
-      pet.updateStatsOverTime();
-      await pet.save();
-    }
+// Centralized internal error handler
+function handleInternalError(res, err, label) {
+  console.error(`[petController.${label}]`, err.stack || err);
+  return res.status(500).json({ success: false, message: 'An unexpected error occurred.' });
+}
 
-    res.json({
-      success: true,
-      data: { pets }
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
-
-// Create new pet
-const createPet = async (req, res) => {
-  try {
-    const { name, type } = req.body;
-
-    // Create pet
-      const abilitiesByType = {
-        cat: ['Heal', 'Lucky'],
-        dog: ['Guard', 'Fetch'],
-        rabbit: ['Speed Up', 'Double Feed'],
-        bird: ['Sing', 'Scout'],
-        fish: ['Splash', 'Treasure']
-      };
-      const abilities = abilitiesByType[type] || [];
-
-      // Create pet
-      const pet = await Pet.create({
-        name,
-        type,
-        abilities,
-        owner: req.user.id
-      });
-
-    // Add pet to user's pets array
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { $push: { pets: pet._id } },
-      { new: true }
-    );
-
-
-    // Unlock achievement 'first_pet' nếu user chưa có
-    const Achievement = require('../models/Achievement');
-    const firstPetAch = await Achievement.findOne({ code: 'first_pet' });
-    if (firstPetAch && !user.achievements.includes(firstPetAch._id)) {
-      user.achievements.push(firstPetAch._id);
-      await user.save();
-    }
-
-    // Unlock achievement 'pet_lover' nếu user có >= 5 pets
-    const petLoverAch = await Achievement.findOne({ code: 'pet_lover' });
-    const updatedUser = await User.findById(req.user.id);
-    if (petLoverAch && updatedUser.pets.length >= 5 && !updatedUser.achievements.includes(petLoverAch._id)) {
-      updatedUser.achievements.push(petLoverAch._id);
-      await updatedUser.save();
-    }
-
-  // Use pet ability
-  const usePetAbility = async (req, res) => {
+// ============================
+// Use Pet Ability
+// ============================
+const usePetAbility = async (req, res) => {
+  return await PerformanceMonitor.measureAsync('pet.usePetAbility', async () => {
     try {
       const petId = req.params.id;
       const { ability } = req.body;
-      const pet = await Pet.findOne({ _id: petId, owner: req.user.id });
-      if (!pet) return res.status(404).json({ success: false, message: 'Pet not found' });
-      if (!pet.abilities.includes(ability)) return res.status(400).json({ success: false, message: 'Ability not found for this pet' });
 
-      // Ability logic (stub)
-      let result = '';
-      switch (ability) {
-        case 'Heal':
-          pet.happiness = Math.min(100, pet.happiness + 20);
-          result = 'Pet happiness restored!';
-          break;
-        case 'Lucky':
-          pet.coins += 10;
-          result = 'Bonus coins received!';
-          break;
-        case 'Guard':
-          // Example: reduce hunger decay for 1 hour (not implemented)
-          result = 'Hunger decay reduced!';
-          break;
-        case 'Fetch':
-          pet.coins += 5;
-          result = 'Pet found some coins!';
-          break;
-        case 'Speed Up':
-          pet.xp += 15;
-          result = 'XP boosted!';
-          break;
-        case 'Double Feed':
-          pet.hunger = Math.min(100, pet.hunger + 30);
-          result = 'Double feed effect!';
-          break;
-        case 'Sing':
-          pet.happiness = Math.min(100, pet.happiness + 10);
-          result = 'All pets feel happier!';
-          break;
-        case 'Scout':
-          result = 'Pet scouted and found something!';
-          break;
-        case 'Splash':
-          pet.hunger = Math.min(100, pet.hunger + 20);
-          result = 'Pet hunger restored!';
-          break;
-        case 'Treasure':
-          pet.coins += 20;
-          result = 'Rare treasure found!';
-          break;
-        default:
-          result = 'Ability used.';
+      // Optimize: Get pet and user data in parallel (reads use lean)
+      const [pet, user] = await Promise.all([
+        PerformanceMonitor.measureAsync('Pet.findOne', () =>
+          Pet.findOne({ _id: petId, owner: req.user.id }).lean().exec()
+        ),
+        CacheService.getOrFetch(
+          CACHE_KEYS.USER_PROFILE(req.user.id),
+          () => PerformanceMonitor.measureAsync('User.findById', () =>
+            User.findById(req.user.id).select(QueryOptimizer.getUserFields(true)).lean().exec()
+          ),
+          CACHE_TTL.USER_PROFILE
+        )
+      ]);
+
+      if (!pet) {
+        return res.status(404).json({ success: false, message: 'Pet not found', data: null });
       }
-      await pet.save();
-      res.json({ success: true, message: result, pet });
-    } catch (error) {
-      res.status(500).json({ success: false, message: 'Server error', error: error.message });
+
+      // Kiểm tra cooldown cho ability
+      const canUseAbility = EconomicService.checkCooldown(
+        user.actionCooldowns?.ability,
+        EconomicService.INCOME_CONFIG.ability.cooldown
+      );
+
+      if (!canUseAbility) {
+        const lastAction = user.actionCooldowns?.ability ? new Date(user.actionCooldowns.ability).getTime() : 0;
+        const timeLeft = Math.ceil((lastAction + EconomicService.INCOME_CONFIG.ability.cooldown - Date.now()) / 60000);
+        return res.status(400).json({ success: false, message: `⏰ Phải đợi ${timeLeft} phút nữa mới có thể dùng ability!`, data: null });
+      }
+
+      // Get pet document (not lean) for ability usage
+      const petDoc = await Pet.findOne({ _id: petId, owner: req.user.id });
+      if (!petDoc) {
+        return res.status(404).json({ success: false, message: 'Pet not found', data: null });
+      }
+
+      const message = await AbilityService.useAbility(petDoc, ability);
+
+      // Tính toán phần thưởng
+      const coinsReward = EconomicService.calculateReward(
+        EconomicService.INCOME_CONFIG.ability.coins,
+        petDoc.level
+      );
+
+      // Batch update user and pet data
+      const updatedUser = await PerformanceMonitor.measureAsync('User.updateUser', async () => {
+        return await User.findByIdAndUpdate(
+          req.user.id,
+          {
+            $inc: {
+              coins: coinsReward,
+              'dailyStats.coinsEarned': coinsReward
+            },
+            $set: { 'actionCooldowns.ability': new Date() }
+          },
+          { new: true, select: QueryOptimizer.getUserFields(true) }
+        ).exec();
+      });
+
+      // Invalidate user and pet caches (best-effort)
+      try {
+        await CacheService.invalidateUserCaches(req.user.id);
+        await CacheService.invalidatePetCaches(petId, req.user.id);
+      } catch (cacheErr) {
+        console.error('[petController.usePetAbility] cache invalidate error:', cacheErr);
+      }
+
+      // Parallel mission validation
+      await Promise.all([
+        MissionValidationService.checkAndUpdateMissions(req.user.id, 'ability', { petId: petDoc._id, ability }),
+        MissionValidationService.checkAndUpdateMissions(req.user.id, 'earn_coins', { amount: coinsReward })
+      ]);
+
+      return res.json({ success: true, message: `${message} (+${coinsReward} \ud83d\udcb0)`, data: { pet: petDoc, coinsEarned: coinsReward, user: { coins: updatedUser.coins } } });
+    } catch (err) {
+      return handleInternalError(res, err, 'usePetAbility');
     }
-  };
-
-    res.status(201).json({
-      success: true,
-      message: 'Pet created successfully',
-      data: { pet }
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
-  }
+  });
 };
 
+// ============================
+// Get all pets for authenticated user
+// ============================
+const getUserPets = async (req, res) => {
+  return await PerformanceMonitor.measureAsync('pet.getUserPets', async () => {
+    try {
+      // Try to get from cache first
+      const cacheKey = CACHE_KEYS.USER_PETS(req.user.id);
+      const cachedPets = CacheService.get(cacheKey);
+
+      if (cachedPets) {
+        return res.json({ success: true, message: 'Fetched user pets (cached)', data: { pets: cachedPets, fromCache: true } });
+      }
+
+      // Use optimized aggregation pipeline (returns plain objects)
+      const pets = await PerformanceMonitor.measureAsync('Pet.aggregate', async () => {
+        return await Pet.aggregate(QueryOptimizer.getUserPetsAggregation(req.user.id));
+      });
+
+      // Update stats only for pets that need it (older than 1 hour)
+      const petsToUpdate = [];
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+      for (let pet of pets) {
+        if (!pet.lastUpdated || pet.lastUpdated < oneHourAgo) {
+          petsToUpdate.push(pet._id);
+        }
+      }
+
+      // Batch update lastUpdated for pets that need it
+      if (petsToUpdate.length > 0) {
+        await PerformanceMonitor.measureAsync('Pet.bulkUpdate', async () => {
+          const bulkOps = petsToUpdate.map(petId => ({
+            updateOne: {
+              filter: { _id: petId },
+              update: { $set: { lastUpdated: new Date() } }
+            }
+          }));
+          return await Pet.bulkWrite(bulkOps);
+        });
+      }
+
+      // Cache the result
+      CacheService.set(cacheKey, pets, CACHE_TTL.USER_PETS);
+
+      return res.json({ success: true, message: 'Fetched user pets', data: { pets, fromCache: false } });
+    } catch (err) {
+      return handleInternalError(res, err, 'getUserPets');
+    }
+  });
+};
+
+// ============================
+// Create new pet
+// ============================
+const createPet = async (req, res) => {
+  return await PerformanceMonitor.measureAsync('pet.createPet', async () => {
+    try {
+      const { name, type } = req.body;
+      const abilities = AbilityService.getAbilitiesForType(type);
+
+      const pet = await Pet.create({ name, type, abilities, owner: req.user.id });
+
+      await User.findByIdAndUpdate(req.user.id, { $push: { pets: pet._id } }).exec();
+
+      // Check achievements
+      await AchievementService.checkFirstPet(req.user.id);
+      await AchievementService.checkPetLover(req.user.id);
+
+      // Invalidate caches for user
+      try {
+        await CacheService.invalidateUserCaches(req.user.id);
+      } catch (cacheErr) {
+        console.error('[petController.createPet] cache invalidate error:', cacheErr);
+      }
+
+      return res.status(201).json({ success: true, message: 'Pet created successfully', data: { pet } });
+    } catch (err) {
+      return handleInternalError(res, err, 'createPet');
+    }
+  });
+};
+
+// ============================
 // Feed pet
+// ============================
 const feedPet = async (req, res) => {
-  try {
-    const pet = await Pet.findById(req.params.id);
+  return await PerformanceMonitor.measureAsync('pet.feedPet', async () => {
+    try {
+      const petId = req.params.id;
 
-    if (!pet) {
-      return res.status(404).json({
-        success: false,
-        message: 'Pet not found'
-      });
-    }
+      // Get pet and user data in parallel with caching
+      const [petData, user] = await Promise.all([
+        PerformanceMonitor.measureAsync('Pet.findById', () => Pet.findOne({ _id: petId, owner: req.user.id }).lean().exec()),
+        CacheService.getOrFetch(
+          CACHE_KEYS.USER_PROFILE(req.user.id),
+          () => PerformanceMonitor.measureAsync('User.findById', () => User.findById(req.user.id).select(QueryOptimizer.getUserFields(true)).lean().exec()),
+          CACHE_TTL.USER_PROFILE
+        )
+      ]);
 
-    // Check if user owns this pet
-    if (pet.owner.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to feed this pet'
-      });
-    }
-
-    // Store old level to check for level up
-    const oldLevel = pet.level;
-
-    // Feed the pet
-    await pet.feed();
-
-    // Unlock achievement 'feeder' nếu pet feedCount >= 100
-    if (pet.feedCount >= 100) {
-      const Achievement = require('../models/Achievement');
-      const feederAch = await Achievement.findOne({ code: 'feeder' });
-      const user = await User.findById(req.user.id);
-      if (feederAch && !user.achievements.includes(feederAch._id)) {
-        user.achievements.push(feederAch._id);
-        await user.save();
+      if (!petData) {
+        return res.status(404).json({ success: false, message: 'Pet not found', data: null });
       }
-    }
 
+      // Kiểm tra cooldown để tránh spam
+      const canFeed = EconomicService.checkCooldown(user.actionCooldowns?.feed, EconomicService.INCOME_CONFIG.feed.cooldown);
 
-    // Check if leveled up
-    const leveledUp = pet.level > oldLevel;
-    let message = '🍖 Pet đã no rồi!';
-    if (leveledUp) {
-      message += ` 🎉 Level lên ${pet.level}!`;
-      // Unlock achievement 'pet_master' nếu pet đạt level 10
-      if (pet.level >= 10) {
-        const Achievement = require('../models/Achievement');
-        const petMasterAch = await Achievement.findOne({ code: 'pet_master' });
-        const user = await User.findById(req.user.id);
-        if (petMasterAch && !user.achievements.includes(petMasterAch._id)) {
-          user.achievements.push(petMasterAch._id);
-          await user.save();
-        }
+      if (!canFeed) {
+        const lastAction = user.actionCooldowns?.feed ? new Date(user.actionCooldowns.feed).getTime() : 0;
+        const timeLeft = Math.ceil((lastAction + EconomicService.INCOME_CONFIG.feed.cooldown - Date.now()) / 60000);
+        return res.status(400).json({ success: false, message: `⏰ Phải đợi ${timeLeft} phút nữa mới có thể cho ăn!`, data: null });
       }
-    }
 
-    // Unlock achievement 'trainer' nếu tổng XP của user >= 1000
-    const userForXP = await User.findById(req.user.id).populate('pets');
-    const totalXP = (userForXP.pets || []).reduce((sum, p) => sum + (p.xp || 0), 0);
-    const Achievement = require('../models/Achievement');
-    const trainerAch = await Achievement.findOne({ code: 'trainer' });
-    if (trainerAch && totalXP >= 1000 && !userForXP.achievements.includes(trainerAch._id)) {
-      userForXP.achievements.push(trainerAch._id);
-      await userForXP.save();
-    }
-
-    res.json({
-      success: true,
-      message,
-      data: { 
-        pet,
-        leveledUp,
-        xpGained: 10,
-        coinsGained: 5
+      // Get actual Pet document (not lean) for methods with owner check
+      const petDoc = await Pet.findOne({ _id: petId, owner: req.user.id });
+      if (!petDoc) {
+        return res.status(404).json({ success: false, message: 'Pet not found', data: null });
       }
-    });
 
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
-  }
+      const feedResult = petDoc.feed(); // Returns { pet, leveledUp }
+
+      // Tính toán phần thưởng
+      const coinsReward = EconomicService.calculateReward(EconomicService.INCOME_CONFIG.feed.coins, petDoc.level);
+
+      // Level up bonus
+      let levelUpBonus = 0;
+      if (feedResult.leveledUp) {
+        levelUpBonus = petDoc.level * 10; // Bonus coins for leveling up
+      }
+
+      const totalCoinsReward = coinsReward + levelUpBonus;
+
+      // Batch update pet and user data in parallel
+      const [updatedPet, updatedUser] = await Promise.all([
+        PerformanceMonitor.measureAsync('Pet.save', () => petDoc.save()),
+        PerformanceMonitor.measureAsync('User.updateUser', async () => {
+          return await User.findByIdAndUpdate(
+            req.user.id,
+            {
+              $inc: { coins: totalCoinsReward, 'dailyStats.coinsEarned': totalCoinsReward },
+              $set: { 'actionCooldowns.feed': new Date() }
+            },
+            { new: true, select: QueryOptimizer.getUserFields(true) }
+          ).exec();
+        })
+      ]);
+
+      // Check achievements
+      await AchievementService.checkFeeder(updatedPet, req.user.id);
+      const leveledUp = feedResult.leveledUp;
+      if (leveledUp) {
+        await AchievementService.checkPetMaster(updatedPet, req.user.id);
+        // Cập nhật nhiệm vụ level up
+        await MissionValidationService.checkAndUpdateMissions(req.user.id, 'pet_level_up');
+      }
+      await AchievementService.checkTrainer(req.user.id);
+
+      // Cập nhật nhiệm vụ
+      await MissionValidationService.checkAndUpdateMissions(req.user.id, 'feed', { petId: updatedPet._id });
+      await MissionValidationService.checkAndUpdateMissions(req.user.id, 'earn_coins', { amount: totalCoinsReward });
+
+      let message = `🍖 Pet đã no rồi! (+${totalCoinsReward} 💰)`;
+      if (leveledUp) {
+        message += ` 🎉 Level lên ${updatedPet.level}! (+${levelUpBonus} bonus)`;
+      }
+
+      // Invalidate caches (best-effort)
+      try {
+        await CacheService.invalidateUserCaches(req.user.id);
+        await CacheService.invalidatePetCaches(petId, req.user.id);
+      } catch (cacheErr) {
+        console.error('[petController.feedPet] cache invalidate error:', cacheErr);
+      }
+
+      return res.json({ success: true, message, data: { pet: updatedPet, leveledUp, xpGained: 10, coinsEarned: totalCoinsReward, user: { coins: updatedUser.coins } } });
+    } catch (err) {
+      return handleInternalError(res, err, 'feedPet');
+    }
+  });
 };
 
+// ============================
 // Play with pet
+// ============================
 const playWithPet = async (req, res) => {
-  try {
-    const pet = await Pet.findById(req.params.id);
+  return await PerformanceMonitor.measureAsync('pet.playWithPet', async () => {
+    try {
+      const pet = await Pet.findById(req.params.id);
+      if (!pet) return res.status(404).json({ success: false, message: 'Pet not found', data: null });
+      if (pet.owner.toString() !== req.user.id) return res.status(403).json({ success: false, message: 'Not authorized to play with this pet', data: null });
 
-    if (!pet) {
-      return res.status(404).json({
-        success: false,
-        message: 'Pet not found'
-      });
-    }
-
-    // Check if user owns this pet
-    if (pet.owner.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to play with this pet'
-      });
-    }
-
-    // Store old level to check for level up
-    const oldLevel = pet.level;
-
-    // Play with the pet
-    await pet.play();
-
-    // Unlock achievement 'player' nếu pet playCount >= 100
-    if (pet.playCount >= 100) {
-      const Achievement = require('../models/Achievement');
-      const playerAch = await Achievement.findOne({ code: 'player' });
+      // Kiểm tra cooldown
       const user = await User.findById(req.user.id);
-      if (playerAch && !user.achievements.includes(playerAch._id)) {
-        user.achievements.push(playerAch._id);
-        await user.save();
+      const canPlay = EconomicService.checkCooldown(user.actionCooldowns?.play, EconomicService.INCOME_CONFIG.play.cooldown);
+
+      if (!canPlay) {
+        const lastAction = user.actionCooldowns?.play ? new Date(user.actionCooldowns.play).getTime() : 0;
+        const timeLeft = Math.ceil((lastAction + EconomicService.INCOME_CONFIG.play.cooldown - Date.now()) / 60000);
+        return res.status(400).json({ success: false, message: `⏰ Phải đợi ${timeLeft} phút nữa mới có thể chơi!`, data: null });
       }
-    }
 
+      const playResult = pet.play(); // Returns { pet, leveledUp }
+      await pet.save(); // Save pet after modifications
 
-    // Check if leveled up
-    const leveledUp = pet.level > oldLevel;
-    let message = '🎾 Pet rất vui!';
-    if (leveledUp) {
-      message += ` 🎉 Level lên ${pet.level}!`;
-      // Unlock achievement 'pet_master' nếu pet đạt level 10
-      if (pet.level >= 10) {
-        const Achievement = require('../models/Achievement');
-        const petMasterAch = await Achievement.findOne({ code: 'pet_master' });
-        const user = await User.findById(req.user.id);
-        if (petMasterAch && !user.achievements.includes(petMasterAch._id)) {
-          user.achievements.push(petMasterAch._id);
-          await user.save();
-        }
+      // Tính toán phần thưởng
+      const coinsReward = EconomicService.calculateReward(EconomicService.INCOME_CONFIG.play.coins, pet.level);
+
+      // Level up bonus
+      let levelUpBonus = 0;
+      if (playResult.leveledUp) {
+        levelUpBonus = pet.level * 10; // Bonus coins for leveling up
       }
-    }
 
-    // Unlock achievement 'trainer' nếu tổng XP của user >= 1000
-    const userForXP2 = await User.findById(req.user.id).populate('pets');
-    const totalXP2 = (userForXP2.pets || []).reduce((sum, p) => sum + (p.xp || 0), 0);
-    const Achievement2 = require('../models/Achievement');
-    const trainerAch2 = await Achievement2.findOne({ code: 'trainer' });
-    if (trainerAch2 && totalXP2 >= 1000 && !userForXP2.achievements.includes(trainerAch2._id)) {
-      userForXP2.achievements.push(trainerAch2._id);
-      await userForXP2.save();
-    }
+      const totalCoinsReward = coinsReward + levelUpBonus;
 
-    res.json({
-      success: true,
-      message,
-      data: { 
-        pet,
-        leveledUp,
-        xpGained: 15,
-        coinsGained: 8
+      // Cập nhật user
+      user.coins = (user.coins || 0) + totalCoinsReward;
+      user.actionCooldowns = user.actionCooldowns || {};
+      user.actionCooldowns.play = new Date();
+      user.dailyStats = user.dailyStats || { coinsEarned: 0 };
+      user.dailyStats.coinsEarned = (user.dailyStats.coinsEarned || 0) + totalCoinsReward;
+      await user.save();
+
+      // Check achievements
+      await AchievementService.checkPlayer(pet, req.user.id);
+      const leveledUp = playResult.leveledUp;
+      if (leveledUp) {
+        await AchievementService.checkPetMaster(pet, req.user.id);
+        await MissionValidationService.checkAndUpdateMissions(req.user.id, 'pet_level_up');
       }
-    });
+      await AchievementService.checkTrainer(req.user.id);
 
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
-  }
+      // Cập nhật nhiệm vụ
+      await MissionValidationService.checkAndUpdateMissions(req.user.id, 'play', { petId: pet._id });
+      await MissionValidationService.checkAndUpdateMissions(req.user.id, 'earn_coins', { amount: totalCoinsReward });
+
+      let message = `🎾 Pet rất vui! (+${totalCoinsReward} 💰)`;
+      if (leveledUp) {
+        message += ` 🎉 Level lên ${pet.level}! (+${levelUpBonus} bonus)`;
+      }
+
+      // Invalidate caches (best-effort)
+      try {
+        await CacheService.invalidateUserCaches(req.user.id);
+        await CacheService.invalidatePetCaches(pet._id.toString(), req.user.id);
+      } catch (cacheErr) {
+        console.error('[petController.playWithPet] cache invalidate error:', cacheErr);
+      }
+
+      return res.json({ success: true, message, data: { pet, leveledUp, xpGained: 15, coinsEarned: totalCoinsReward, user: { coins: user.coins } } });
+    } catch (err) {
+      return handleInternalError(res, err, 'playWithPet');
+    }
+  });
 };
 
+// ============================
 // Delete pet
+// ============================
 const deletePet = async (req, res) => {
-  try {
-    const pet = await Pet.findById(req.params.id);
+  return await PerformanceMonitor.measureAsync('pet.deletePet', async () => {
+    try {
+      const pet = await Pet.findById(req.params.id);
+      if (!pet) return res.status(404).json({ success: false, message: 'Pet not found', data: null });
+      if (pet.owner.toString() !== req.user.id) return res.status(403).json({ success: false, message: 'Not authorized to delete this pet', data: null });
 
-    if (!pet) {
-      return res.status(404).json({
-        success: false,
-        message: 'Pet not found'
-      });
+      await User.findByIdAndUpdate(req.user.id, { $pull: { pets: pet._id } }).exec();
+      await Pet.findByIdAndDelete(req.params.id).exec();
+
+      // Invalidate caches (best-effort)
+      try {
+        await CacheService.invalidateUserCaches(req.user.id);
+        await CacheService.invalidatePetCaches(req.params.id, req.user.id);
+      } catch (cacheErr) {
+        console.error('[petController.deletePet] cache invalidate error:', cacheErr);
+      }
+
+      return res.json({ success: true, message: 'Pet deleted successfully', data: null });
+    } catch (err) {
+      return handleInternalError(res, err, 'deletePet');
     }
-
-    // Check if user owns this pet
-    if (pet.owner.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to delete this pet'
-      });
-    }
-
-    // Remove pet from user's pets array
-    await User.findByIdAndUpdate(
-      req.user.id,
-      { $pull: { pets: pet._id } }
-    );
-
-    // Delete the pet
-    await Pet.findByIdAndDelete(req.params.id);
-
-    res.json({
-      success: true,
-      message: 'Pet deleted successfully'
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
-  }
+  });
 };
 
+// ============================
+// Exports
+// ============================
 module.exports = {
   getUserPets,
   createPet,
   feedPet,
   playWithPet,
-  deletePet
+  deletePet,
+  usePetAbility
 };

@@ -35,11 +35,6 @@ const petSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
-  coins: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
   lastFed: {
     type: Date,
     default: Date.now
@@ -54,6 +49,11 @@ const petSchema = new mongoose.Schema({
       description: 'Special skills for each pet type'
     },
   playCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  feedCount: {
     type: Number,
     default: 0,
     min: 0
@@ -82,42 +82,39 @@ petSchema.methods.updateStatsOverTime = function() {
   this.happiness = Math.max(0, this.happiness - happinessDecline);
 };
 
-// Method to feed pet
-
+// Method to feed pet - Coins được quản lý bởi User model
 petSchema.methods.feed = function() {
   this.updateStatsOverTime();
   this.hunger = Math.min(100, this.hunger + 20);
   this.happiness = Math.min(100, this.happiness + 10);
   this.xp += 10;
-  this.coins += 5;
+  // Removed: this.coins += 5; - Coins now managed by User model
   this.lastFed = new Date();
   this.feedCount = (this.feedCount || 0) + 1;
-  this.checkLevelUp();
-  return this.save();
+  const leveledUp = this.checkLevelUp();
+  return { pet: this, leveledUp };
 };
 
-// Method to play with pet
-
+// Method to play with pet - Coins được quản lý bởi User model
 petSchema.methods.play = function() {
   this.updateStatsOverTime();
   this.happiness = Math.min(100, this.happiness + 20);
   this.hunger = Math.max(0, this.hunger - 5);
   this.xp += 15;
-  this.coins += 8;
+  // Removed: this.coins += 8; - Coins now managed by User model
   this.lastPlayed = new Date();
   this.playCount = (this.playCount || 0) + 1;
-  this.checkLevelUp();
-  return this.save();
+  const leveledUp = this.checkLevelUp();
+  return { pet: this, leveledUp };
 };
 
-// Level up system
+// Level up system - Coins bonus được xử lý bởi controller
 petSchema.methods.checkLevelUp = function() {
   const xpNeeded = this.level * 100; // 100 XP per level
   if (this.xp >= xpNeeded) {
     this.level += 1;
     this.xp -= xpNeeded;
-    // Bonus coins for leveling up
-    this.coins += this.level * 10;
+    // Removed: this.coins += this.level * 10; - Coins managed by User model
     return true;
   }
   return false;

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { getShopItems, buyItem, getUserInventory, useItem } from '../api/shop';
 import { getPets } from '../api/pets';
 import { useToast } from '../context/ToastContext';
+import { useEconomic } from '../context/EconomicContext';
+import { useAuth } from '../context/AuthContext';
 
 const Shop = () => {
   const [shopItems, setShopItems] = useState([]);
@@ -10,8 +12,9 @@ const Shop = () => {
   const [activeTab, setActiveTab] = useState('shop');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
-  const [userCoins, setUserCoins] = useState(0);
   const { addToast } = useToast();
+  const { coins, refreshData } = useEconomic();
+  const { updateUser } = useAuth();
 
   useEffect(() => {
     loadData();
@@ -26,15 +29,10 @@ const Shop = () => {
         getPets()
       ]);
       
-      setShopItems(shopData.data.items);
-      setInventory(inventoryData.data.inventory);
-      setPets(petsData.data.pets);
-      
-      // Get user coins from pets data (assuming we get it from user)
-      if (petsData.data.pets.length > 0) {
-        // We'll need to get user data separately or include it in pets response
-        setUserCoins(100); // Placeholder, will fix this
-      }
+      // Backend trả về { success, message, data }
+      setShopItems(shopData.data.data.items);
+      setInventory(inventoryData.data.data.inventory);
+      setPets(petsData.data.data.pets);
     } catch (error) {
       console.error('Error loading shop data:', error);
       addToast('❌ Không thể tải dữ liệu shop', 'error');
@@ -46,8 +44,15 @@ const Shop = () => {
   const handleBuyItem = async (item) => {
     try {
       const response = await buyItem(item._id, 1);
-      addToast(response.message, 'success');
-      setUserCoins(response.data.userCoins);
+      // Backend trả về { success, message, data: { item, userCoins, totalCost, dynamicPricing } }
+      addToast(response.data.message, 'success');
+      
+      // Update user coins in context
+      if (response.data.data.userCoins !== undefined) {
+        updateUser({ coins: response.data.data.userCoins });
+      }
+      
+      refreshData(); // Refresh economic data
       await loadData(); // Reload inventory
     } catch (error) {
       addToast(error.response?.data?.message || '❌ Không thể mua item', 'error');
@@ -57,7 +62,8 @@ const Shop = () => {
   const handleUseItem = async (inventoryItem, petId = null) => {
     try {
       const response = await useItem(inventoryItem._id, petId);
-      addToast(response.message, 'success');
+      // Backend trả về { success, message, data: { pet, itemUsed } }
+      addToast(response.data.message, 'success');
       await loadData(); // Reload data
     } catch (error) {
       addToast(error.response?.data?.message || '❌ Không thể sử dụng item', 'error');
@@ -98,7 +104,7 @@ const Shop = () => {
               🏪 Pet Shop
             </h1>
             <p className="mt-2 text-gray-600 flex items-center gap-2">
-              💰 Coins của bạn: <span className="font-bold text-yellow-600">{userCoins}</span>
+              💰 Coins của bạn: <span className="font-bold text-yellow-600">{coins?.toLocaleString() || 0}</span>
             </p>
           </div>
         </div>
@@ -186,10 +192,10 @@ const Shop = () => {
                     </span>
                     <button
                       onClick={() => handleBuyItem(item)}
-                      disabled={userCoins < item.price}
+                      disabled={(coins || 0) < item.price}
                       className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
                     >
-                      {userCoins < item.price ? 'Không đủ coins' : 'Mua'}
+                      {(coins || 0) < item.price ? 'Không đủ coins' : 'Mua'}
                     </button>
                   </div>
 

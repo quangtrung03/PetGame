@@ -49,6 +49,14 @@ const authReducer = (state, action) => {
         token: action.payload.token,
         isAuthenticated: true,
       };
+    case 'UPDATE_USER':
+      return {
+        ...state,
+        user: {
+          ...state.user,
+          ...action.payload
+        }
+      };
     default:
       return state;
   }
@@ -80,13 +88,13 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await loginAPI(credentials);
       
-      // Store in localStorage
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      // Store in localStorage (backend trả về { success, message, data })
+      localStorage.setItem('token', response.data.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.data.user));
       
       dispatch({
         type: 'LOGIN_SUCCESS',
-        payload: response.data,
+        payload: response.data.data,
       });
       
       return response;
@@ -106,13 +114,13 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await registerAPI(userData);
       
-      // Store in localStorage
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      // Store in localStorage (backend trả về { success, message, data })
+      localStorage.setItem('token', response.data.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.data.user));
       
       dispatch({
         type: 'REGISTER_SUCCESS',
-        payload: response.data,
+        payload: response.data.data,
       });
       
       return response;
@@ -132,11 +140,22 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: 'LOGOUT' });
   };
 
+  // Update user data
+  const updateUser = (userData) => {
+    const updatedUser = { ...state.user, ...userData };
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    dispatch({
+      type: 'UPDATE_USER',
+      payload: userData
+    });
+  };
+
   const value = {
     ...state,
     login,
     register,
     logout,
+    updateUser,
   };
 
   return (

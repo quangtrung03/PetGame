@@ -16,8 +16,9 @@ const AchievementList = () => {
           getUserAchievements(token),
           getAllAchievements()
         ]);
-        setUserAchievements(userRes.data.achievements || []);
-        setAllAchievements(allRes.data.achievements || []);
+        // Backend trả về { success, message, data }
+        setUserAchievements(userRes.data?.data?.achievements || userRes.data?.achievements || []);
+        setAllAchievements(allRes.data?.data?.achievements || allRes.data?.achievements || []);
       } catch (err) {
         // handle error
       }

@@ -8,8 +8,17 @@ const {
   usePetAbility
 } = require('../controllers/petController');
 const auth = require('../middleware/auth');
+const {
+  validatePetAction,
+  apiRateLimit,
+  validateRequest
+} = require('../middleware/validation');
 
 const router = express.Router();
+
+// Apply general validation and rate limiting
+router.use(validateRequest);
+router.use(apiRateLimit);
 
 // All pet routes are protected
 router.use(auth);
@@ -19,15 +28,16 @@ router.route('/')
   .post(createPet);
 
 router.route('/:id/feed')
-  .patch(feedPet);
+  .patch(validatePetAction, feedPet);
 
 router.route('/:id/play')
-  .patch(playWithPet);
+  .patch(validatePetAction, playWithPet);
 
 router.route('/:id')
-  .delete(deletePet);
+  .delete(validatePetAction, deletePet);
 
 // Use pet ability
-router.route('/:id/use-ability').post(usePetAbility);
+router.route('/:id/use-ability')
+  .post(validatePetAction, usePetAbility);
 
 module.exports = router;

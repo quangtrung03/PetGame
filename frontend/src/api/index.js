@@ -33,3 +33,12 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// Export all API modules
+export * from './auth';
+export * from './pets';
+export * from './shop';
+export * from './achievements';
+export * from './dailyMissions';
+export * from './friends';
+export * from './games';

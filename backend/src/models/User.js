@@ -61,6 +61,32 @@ const userSchema = new mongoose.Schema({
   friendRequests: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  }],
+  // Tracking for economic balance
+  actionCooldowns: {
+    feed: { type: Date },
+    play: { type: Date },
+    ability: { type: Date },
+    dailyLogin: { type: Date },
+    minigame: { type: Date }
+  },
+  purchaseHistory: {
+    food: { type: Number, default: 0 },
+    toys: { type: Number, default: 0 },
+    total: { type: Number, default: 0 }
+  },
+  dailyStats: {
+    coinsEarned: { type: Number, default: 0 },
+    coinsSpent: { type: Number, default: 0 },
+    lastReset: { type: Date, default: Date.now }
+  },
+  // Daily mission progress tracking
+  dailyMissions: [{
+    missionCode: { type: String, required: true },
+    currentProgress: { type: Number, default: 0 },
+    completed: { type: Boolean, default: false },
+    claimed: { type: Boolean, default: false },
+    date: { type: Date, default: Date.now }
   }]
 }, {
   timestamps: true

@@ -4,9 +4,9 @@ import api from './index';
 export const registerUser = async (userData) => {
   try {
     const response = await api.post('/auth/register', userData);
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Network error' };
+    throw error.response || { data: { message: 'Network error' } };
   }
 };
 
@@ -14,9 +14,9 @@ export const registerUser = async (userData) => {
 export const loginUser = async (credentials) => {
   try {
     const response = await api.post('/auth/login', credentials);
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Network error' };
+    throw error.response || { data: { message: 'Network error' } };
   }
 };
 
@@ -24,8 +24,8 @@ export const loginUser = async (credentials) => {
 export const getUserProfile = async () => {
   try {
     const response = await api.get('/auth/profile');
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Network error' };
+    throw error.response || { data: { message: 'Network error' } };
   }
 };

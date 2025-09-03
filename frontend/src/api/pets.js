@@ -4,9 +4,9 @@ import api from './index';
 export const getPets = async () => {
   try {
     const response = await api.get('/pets');
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Network error' };
+    throw error.response || { data: { message: 'Network error' } };
   }
 };
 
@@ -14,9 +14,9 @@ export const getPets = async () => {
 export const createPet = async (petData) => {
   try {
     const response = await api.post('/pets', petData);
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Network error' };
+    throw error.response || { data: { message: 'Network error' } };
   }
 };
 
@@ -24,20 +24,29 @@ export const createPet = async (petData) => {
 export const feedPet = async (petId) => {
   try {
     const response = await api.patch(`/pets/${petId}/feed`);
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Network error' };
+    throw error.response || { data: { message: 'Network error' } };
   }
 };
 
+// Play with pet
+export const playWithPet = async (petId) => {
+  try {
+    const response = await api.patch(`/pets/${petId}/play`);
+    return response;
+  } catch (error) {
+    throw error.response || { data: { message: 'Network error' } };
+  }
+};
 
 // Sử dụng ability của pet
 export const usePetAbility = async (petId, ability) => {
   try {
     const response = await api.post(`/pets/${petId}/use-ability`, { ability });
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Network error' };
+    throw error.response || { data: { message: 'Network error' } };
   }
 };
 
@@ -45,8 +54,8 @@ export const usePetAbility = async (petId, ability) => {
 export const deletePet = async (petId) => {
   try {
     const response = await api.delete(`/pets/${petId}`);
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Network error' };
+    throw error.response || { data: { message: 'Network error' } };
   }
 };

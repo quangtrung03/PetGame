@@ -23,7 +23,8 @@ const Pets = () => {
   const loadPets = async () => {
     try {
       const response = await getPets();
-      setPets(response.data.pets);
+      // Backend trả về { success, message, data: { pets } }
+      setPets(response.data.data.pets);
     } catch (error) {
       console.error('Error loading pets:', error);
       setError('Không thể tải danh sách pet');
@@ -40,10 +41,11 @@ const Pets = () => {
 
     try {
       const response = await createPet(newPet);
-      setPets([...pets, response.data.pet]);
+      // Backend trả về { success, message, data: { pet } }
+      setPets([...pets, response.data.data.pet]);
       setNewPet({ name: '', type: 'cat' });
       setShowCreateForm(false);
-      addToast(`🎉 Đã tạo thành công ${response.data.pet.name}!`, 'success');
+      addToast(`🎉 Đã tạo thành công ${response.data.data.pet.name}!`, 'success');
     } catch (error) {
       console.error('Error creating pet:', error);
       const errorMessage = error.message || 'Không thể tạo pet mới';
