@@ -163,6 +163,59 @@ const Home = () => {
           )}
         </div>
       </div>
+
+      {/* Help Section - Answers "What can you help me with?" */}
+      <div className="py-16 bg-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              🤔 Pet Game có thể giúp gì cho bạn?
+            </h2>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-8">
+              Đây là tất cả những gì chúng tôi có thể hỗ trợ bạn trong hành trình nuôi thú cưng ảo!
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
+              <div className="text-3xl mb-3">🐾</div>
+              <h3 className="text-lg font-semibold mb-2">Quản lý thú cưng</h3>
+              <p className="text-sm text-gray-600">Nuôi 5 loại thú cưng với kỹ năng đặc biệt</p>
+            </div>
+            
+            <div className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
+              <div className="text-3xl mb-3">🛒</div>
+              <h3 className="text-lg font-semibold mb-2">Mua sắm thông minh</h3>
+              <p className="text-sm text-gray-600">Shop với hệ thống giá động và inventory</p>
+            </div>
+            
+            <div className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
+              <div className="text-3xl mb-3">🎮</div>
+              <h3 className="text-lg font-semibold mb-2">Mini games</h3>
+              <p className="text-sm text-gray-600">Memory game với bonus và streak system</p>
+            </div>
+            
+            <div className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
+              <div className="text-3xl mb-3">🏆</div>
+              <h3 className="text-lg font-semibold mb-2">Achievement & Missions</h3>
+              <p className="text-sm text-gray-600">Nhiệm vụ hàng ngày và thành tích đặc biệt</p>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <Link
+              to="/help"
+              className="inline-flex items-center bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-lg"
+            >
+              <span className="mr-2">❓</span>
+              Xem hướng dẫn chi tiết
+            </Link>
+            <p className="text-sm text-gray-600 mt-4">
+              Tìm hiểu đầy đủ về tất cả tính năng và cách chơi hiệu quả
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
