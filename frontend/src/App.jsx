@@ -21,6 +21,7 @@ import {
   MiniGames,
   DailyMissions,
   Friends,
+  Help,
   preloadCriticalComponents
 } from './components/LazyComponents';
 
@@ -101,6 +102,10 @@ function App() {
                       <MiniGames />
                     </ProtectedRoute>
                   }
+                />
+                <Route
+                  path="/help"
+                  element={<Help />}
                 />
                 {/* Redirect unknown routes */}
                 <Route path="*" element={<Navigate to="/" replace />} />
