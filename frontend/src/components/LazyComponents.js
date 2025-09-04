@@ -43,6 +43,12 @@ export const Friends = lazy(() =>
   }))
 );
 
+export const Help = lazy(() => 
+  import('../pages/Help').catch(() => ({ 
+    default: () => <div>Help feature loading...</div> 
+  }))
+);
+
 // Component lazy loading with error handling
 export const lazyWithRetry = (importFn, retries = 3) => {
   return lazy(() => 
@@ -118,6 +124,10 @@ export const routeComponents = {
   friends: {
     component: Friends,
     preload: false
+  },
+  help: {
+    component: Help,
+    preload: false
   }
 };
 
@@ -131,6 +141,7 @@ export default {
   MiniGames,
   DailyMissions,
   Friends,
+  Help,
   lazyWithRetry,
   preloadComponent,
   preloadCriticalComponents,

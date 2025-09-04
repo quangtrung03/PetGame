@@ -61,6 +61,7 @@ app.use('/api/achievements', achievementRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/daily-missions', require('./routes/dailyMissionRoutes'));
 app.use('/api/friends', require('./routes/friendRoutes'));
+app.use('/api/help', require('./routes/helpRoutes'));
 
 // Health check route
 app.get('/api/health', (req, res) => {

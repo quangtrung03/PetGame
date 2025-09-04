@@ -69,6 +69,12 @@ const Navbar = () => {
                 >
                   👥 Bạn bè
                 </Link>
+                <Link
+                  to="/help"
+                  className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  ❓ Hướng dẫn
+                </Link>
                 
                 {/* User Stats Display */}
                 <div className="flex items-center space-x-2 bg-gray-100 rounded-lg px-3 py-1">
@@ -99,6 +105,12 @@ const Navbar = () => {
               </>
             ) : (
               <>
+                <Link
+                  to="/help"
+                  className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  ❓ Hướng dẫn
+                </Link>
                 <Link
                   to="/login"
                   className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
